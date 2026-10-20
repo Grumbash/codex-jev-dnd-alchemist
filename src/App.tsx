@@ -3,16 +3,18 @@ import {
   Award,
   Compass,
   Cpu,
+  Crown,
   Dices,
   Eye,
   Flame,
   Hammer,
+  Handshake,
   KeyRound,
   Moon,
   RotateCcw,
-  ShieldAlert,
   ShoppingBag,
   Sparkles,
+  Swords,
   Trash2,
   Volume2,
   VolumeX,
@@ -23,7 +25,10 @@ import {
   CraftingStation,
   GameItem,
   GuildBounty,
+  HeroLoadout,
+  HeroSlotType,
   JevDecisionTelemetry,
+  Monster,
   RecipeRecord,
   WorkshopUpgrade,
 } from './types/game';
@@ -36,6 +41,7 @@ import {
   RARITY_META,
   SHOP_CATALYST_IDS,
 } from './data/bestiary';
+import { GUILD_WORLD_HEROES, PartyHeroProfile } from './data/guildWorldCampaign';
 import {
   assembleCraftedItem,
   evaluateCrucibleWithJev,
@@ -45,9 +51,12 @@ import { JevTelemetryPanel } from './components/JevTelemetryPanel';
 import { JeiCodexSidebar } from './components/JeiCodexSidebar';
 import { ItemStatblockModal } from './components/ItemStatblockModal';
 import { CompositeItemSprite, CompositeMonsterSprite } from './components/CompositeItemSprite';
+import { HeroRaidPanel, getHeroSlotForItem } from './components/HeroRaidPanel';
+import { MerchantHaggleModal } from './components/MerchantHaggleModal';
+import { DmMasterModal } from './components/DmMasterModal';
 import { sfx } from './utils/sound';
 
-const STORAGE_KEY = 'dnd_jev_alchemist_save_v1';
+const STORAGE_KEY = 'dnd_jev_alchemist_guild_world_v2';
 
 interface RollResultState {
   context: 'craft' | 'harvest';
@@ -67,30 +76,43 @@ interface RollResultState {
 
 export function App() {
   // === CORE GAME STATE ===
-  const [activeMainTab, setActiveMainTab] = useState<'crucible' | 'bestiary' | 'guild'>('crucible');
+  const [activeMainTab, setActiveMainTab] = useState<'crucible' | 'bestiary' | 'guild' | 'hero_raid'>('crucible');
   const [station, setStation] = useState<CraftingStation>('alchemist');
+  const [activeHeroId, setActiveHeroId] = useState<PartyHeroProfile['id']>('quick');
+
+  // === TABLETOP ROLL MODE (Живой d20 со стола) & DM MODE ===
+  const [tabletopRollMode, setTabletopRollMode] = useState<boolean>(false);
+  const [manualD20Roll, setManualD20Roll] = useState<number>(15);
+  const [showDmModal, setShowDmModal] = useState<boolean>(false);
+  const [customMonsters, setCustomMonsters] = useState<Monster[]>([]);
 
   const [itemsMap, setItemsMap] = useState<Record<string, GameItem>>(() => ({
     ...INITIAL_ITEMS,
   }));
 
   const [inventory, setInventory] = useState<Record<string, number>>({
-    cube_acid_ooze: 3,
+    chuul_chitin_plate: 2,
+    tavrai_kerdos_bone: 2,
+    kreym_thunder_herbs: 2,
+    kreym_lightblade_shard: 1,
+    remorhaz_chitin_crest: 2,
+    dalniy_dragon_horn: 2,
+    cube_acid_ooze: 2,
     mimic_toothed_splinter: 2,
-    displacer_shimmer_hide: 2,
-    manticore_tail_spike: 2,
-    basilisk_stone_scale: 2,
     catalyst_crystal_vial: 3,
     catalyst_mithral_ingot: 2,
     catalyst_silver_ring: 1,
   });
 
   const [discoveredItemIds, setDiscoveredItemIds] = useState<string[]>([
+    'chuul_chitin_plate',
+    'tavrai_kerdos_bone',
+    'kreym_thunder_herbs',
+    'kreym_lightblade_shard',
+    'remorhaz_chitin_crest',
+    'dalniy_dragon_horn',
     'cube_acid_ooze',
     'mimic_toothed_splinter',
-    'displacer_shimmer_hide',
-    'manticore_tail_spike',
-    'basilisk_stone_scale',
     'catalyst_crystal_vial',
     'catalyst_mithral_ingot',
     'catalyst_silver_ring',
@@ -98,11 +120,12 @@ export function App() {
 
   const [recipes, setRecipes] = useState<Record<string, RecipeRecord>>({});
   const [crucibleSlots, setCrucibleSlots] = useState<string[]>([]);
+  const [heroLoadout, setHeroLoadout] = useState<HeroLoadout>({});
 
   // === PROGRESSION: MASTERY, STAMINA, GOLD ===
   const [day, setDay] = useState<number>(1);
   const [xp, setXp] = useState<number>(0);
-  const [gold, setGold] = useState<number>(180);
+  const [gold, setGold] = useState<number>(350);
   const [stamina, setStamina] = useState<number>(10);
   const [upgrades, setUpgrades] = useState<WorkshopUpgrade[]>(INITIAL_UPGRADES);
   const [bounties, setBounties] = useState<GuildBounty[]>(() => generateDailyBounties(1));
@@ -115,14 +138,25 @@ export function App() {
   const [isEvaluating, setIsEvaluating] = useState<boolean>(false);
 
   // === UI / MODALS / JEI ===
-  const [selectedJeiItemId, setSelectedJeiItemId] = useState<string | null>('cube_acid_ooze');
+  const [selectedJeiItemId, setSelectedJeiItemId] = useState<string | null>('chuul_chitin_plate');
   const [jeiTab, setJeiTab] = useState<'recipe' | 'uses'>('recipe');
   const [inspectedItem, setInspectedItem] = useState<GameItem | null>(null);
+  const [haggleItem, setHaggleItem] = useState<GameItem | null>(null);
   const [highlightedMonsterId, setHighlightedMonsterId] = useState<string | null>(null);
   const [lastRoll, setLastRoll] = useState<RollResultState | null>(null);
   const [isRolling, setIsRolling] = useState<boolean>(false);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const allMonsters = useMemo(
+    () => [...customMonsters, ...MONSTERS],
+    [customMonsters]
+  );
+
+  const activeHero = useMemo(
+    () => GUILD_WORLD_HEROES.find((h) => h.id === activeHeroId) || GUILD_WORLD_HEROES[0],
+    [activeHeroId]
+  );
 
   // Load saved state on mount
   useEffect(() => {
@@ -134,6 +168,10 @@ export function App() {
         if (parsed.inventory) setInventory(parsed.inventory);
         if (parsed.discoveredItemIds) setDiscoveredItemIds(parsed.discoveredItemIds);
         if (parsed.recipes) setRecipes(parsed.recipes);
+        if (parsed.heroLoadout) setHeroLoadout(parsed.heroLoadout);
+        if (parsed.activeHeroId) setActiveHeroId(parsed.activeHeroId);
+        if (typeof parsed.tabletopRollMode === 'boolean') setTabletopRollMode(parsed.tabletopRollMode);
+        if (Array.isArray(parsed.customMonsters)) setCustomMonsters(parsed.customMonsters);
         if (typeof parsed.day === 'number') setDay(parsed.day);
         if (typeof parsed.xp === 'number') setXp(parsed.xp);
         if (typeof parsed.gold === 'number') setGold(parsed.gold);
@@ -157,6 +195,10 @@ export function App() {
           inventory,
           discoveredItemIds,
           recipes,
+          heroLoadout,
+          activeHeroId,
+          tabletopRollMode,
+          customMonsters,
           day,
           xp,
           gold,
@@ -174,6 +216,10 @@ export function App() {
     inventory,
     discoveredItemIds,
     recipes,
+    heroLoadout,
+    activeHeroId,
+    tabletopRollMode,
+    customMonsters,
     day,
     xp,
     gold,
@@ -205,8 +251,8 @@ export function App() {
   }, [alchemistLevel]);
 
   const proficiencyBonus = useMemo(() => {
-    return 1 + alchemistLevel; // +2 at lvl 1 -> +6 at lvl 5
-  }, [alchemistLevel]);
+    return Math.max(1 + alchemistLevel, activeHero.craftBonus);
+  }, [alchemistLevel, activeHero]);
 
   const hasUpgrade = (key: WorkshopUpgrade['effectKey']) =>
     upgrades.some((u) => u.effectKey === key && u.purchased);
@@ -327,9 +373,11 @@ export function App() {
     setIsRolling(true);
 
     setTimeout(() => {
-      const r1 = Math.floor(Math.random() * 20) + 1;
-      const r2 = Math.floor(Math.random() * 20) + 1;
-      const d20Raw = isExhausted ? Math.min(r1, r2) : r1;
+      const r1 = tabletopRollMode
+        ? Math.max(1, Math.min(20, manualD20Roll))
+        : Math.floor(Math.random() * 20) + 1;
+      const r2 = tabletopRollMode ? r1 : Math.floor(Math.random() * 20) + 1;
+      const d20Raw = isExhausted && !tabletopRollMode ? Math.min(r1, r2) : r1;
       const total = d20Raw + proficiencyBonus;
 
       // Consume stamina (can drop to 0)
@@ -370,15 +418,15 @@ export function App() {
         setLastRoll({
           context: 'craft',
           d20Raw,
-          d20Second: isExhausted ? Math.max(r1, r2) : undefined,
+          d20Second: isExhausted && !tabletopRollMode ? Math.max(r1, r2) : undefined,
           proficiencyBonus,
           extraBonus: 0,
           total,
           dc: effectiveDc,
           outcome: 'slag',
-          title: '💥 Реакция сорвалась в шлак!',
+          title: `💥 Реакция сорвалась в шлак (${activeHero.name})!`,
           subtitle: salvagedItem
-            ? `Контур возврата спас реагент «${salvagedItem.name}»! Получен Алхимический шлак.`
+            ? `Защищённое хранилище спасло реагент «${salvagedItem.name}»! Получен Алхимический шлак.`
             : 'Нестабильность оказалась выше броска. Получен Нестабильный алхимический шлак.',
           createdItem: itemsMap.alchemical_slag,
         });
@@ -426,7 +474,7 @@ export function App() {
       setLastRoll({
         context: 'craft',
         d20Raw,
-        d20Second: isExhausted ? Math.max(r1, r2) : undefined,
+        d20Second: isExhausted && !tabletopRollMode ? Math.max(r1, r2) : undefined,
         proficiencyBonus,
         extraBonus: 0,
         total,
@@ -434,10 +482,10 @@ export function App() {
         outcome,
         title:
           outcome === 'masterwork'
-            ? '🌟 КРИТИЧЕСКИЙ СИНТЕЗ: ШЕДЕВР!'
+            ? `🌟 КРИТИЧЕСКИЙ СИНТЕЗ (${activeHero.name}): ШЕДЕВР!`
             : outcome === 'cursed'
-            ? '🩸 СИНТЕЗ С ПРОКЛЯТИЕМ!'
-            : '✨ УСПЕШНЫЙ СИНТЕЗ АРТЕФАКТА!',
+            ? `🩸 СИНТЕЗ С ПРОКЛЯТИЕМ (${activeHero.name})!`
+            : `✨ УСПЕШНЫЙ СИНТЕЗ (${activeHero.name})!`,
         subtitle: `${crafted.name} (+${gainedXp} XP${isFirst ? ' • ПЕРВООТКРЫТИЕ В ГРИМУАРЕ!' : ''})`,
         createdItem: crafted,
         isFirstDiscovery: isFirst,
@@ -449,7 +497,7 @@ export function App() {
 
   // === FAST HARVEST IN BESTIARY ===
   const handleHarvestMonster = (monsterId: string) => {
-    const monster = MONSTERS.find((m) => m.id === monsterId);
+    const monster = allMonsters.find((m) => m.id === monsterId);
     if (!monster || isRolling) return;
 
     if (alchemistLevel < monster.minAlchemistLevel) {
@@ -461,11 +509,14 @@ export function App() {
     setIsRolling(true);
 
     setTimeout(() => {
-      const r1 = Math.floor(Math.random() * 20) + 1;
-      const r2 = Math.floor(Math.random() * 20) + 1;
-      const d20Raw = isExhausted ? Math.min(r1, r2) : r1;
+      const r1 = tabletopRollMode
+        ? Math.max(1, Math.min(20, manualD20Roll))
+        : Math.floor(Math.random() * 20) + 1;
+      const r2 = tabletopRollMode ? r1 : Math.floor(Math.random() * 20) + 1;
+      const d20Raw = isExhausted && !tabletopRollMode ? Math.min(r1, r2) : r1;
       const scalpelBonus = hasUpgrade('harvest_bonus_2') ? 2 : 0;
-      const total = d20Raw + proficiencyBonus + scalpelBonus;
+      const harvestMod = Math.max(proficiencyBonus, activeHero.harvestBonus);
+      const total = d20Raw + harvestMod + scalpelBonus;
 
       setStamina((prev) => Math.max(0, prev - monster.staminaCost));
 
@@ -500,13 +551,13 @@ export function App() {
         setLastRoll({
           context: 'harvest',
           d20Raw,
-          d20Second: isExhausted ? Math.max(r1, r2) : undefined,
-          proficiencyBonus,
+          d20Second: isExhausted && !tabletopRollMode ? Math.max(r1, r2) : undefined,
+          proficiencyBonus: harvestMod,
           extraBonus: scalpelBonus,
           total,
           dc: monster.drops[1].dc,
           outcome: 'harvest_success',
-          title: `🐉 Разделка: ${monster.name}`,
+          title: `🐉 Разделка (${activeHero.name}): ${monster.name}`,
           subtitle: `Добыто трофеев: ${harvested.map((h) => h.name).join(', ')}`,
           harvestedItems: harvested,
         });
@@ -515,8 +566,8 @@ export function App() {
         setLastRoll({
           context: 'harvest',
           d20Raw,
-          d20Second: isExhausted ? Math.max(r1, r2) : undefined,
-          proficiencyBonus,
+          d20Second: isExhausted && !tabletopRollMode ? Math.max(r1, r2) : undefined,
+          proficiencyBonus: harvestMod,
           extraBonus: scalpelBonus,
           total,
           dc: monster.drops[0].dc,
@@ -672,35 +723,80 @@ export function App() {
               ⚗️
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="font-display font-bold text-base sm:text-lg tracking-wide text-amber-200">
-                  CODEX JEV: ALCHEMIST OF THE REALMS
+                  МИР ГИЛЬДИЙ: ТИГЕЛЬ ДАЛЬНЕГО КАМНЯ
                 </h1>
                 <span className="hidden md:inline-flex px-2 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 font-mono text-[10px]">
-                  D&D 5e × JEI × TypeSafe Jev
+                  Кампания «Монстры» × Jev NAR
                 </span>
               </div>
               <p className="text-[11px] text-stone-400">
-                День {day} • Система не-авторегрессионного крафта и анатомии чудовищ
+                День {day} • Логово: Мыс Дальний Камень (Смотритель Скреп) • Активен:{' '}
+                <strong className="text-amber-200">
+                  {activeHero.avatarEmoji} {activeHero.name}
+                </strong>
               </p>
             </div>
           </div>
 
-          {/* Progression Pillars: Mastery, Stamina, Gold */}
-          <div className="flex flex-wrap items-center gap-2.5">
+          {/* Progression Pillars: Party Switcher, Tabletop Roll Mode, Stamina, Gold, DM Mode */}
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Party Hero Quick Switcher (Квик / Нокта / Слоу) */}
+            <div className="rounded-xl bg-stone-900/90 border border-stone-800 p-1 flex items-center gap-1">
+              {GUILD_WORLD_HEROES.map((hero) => {
+                const selected = hero.id === activeHeroId;
+                return (
+                  <button
+                    key={hero.id}
+                    onClick={() => {
+                      sfx.playClick();
+                      setActiveHeroId(hero.id);
+                    }}
+                    title={`${hero.name} (${hero.raceClass}) — Бонус крафта +${hero.craftBonus}, разделки +${hero.harvestBonus}`}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-display font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                      selected
+                        ? 'bg-amber-500/25 border border-amber-400/60 text-amber-200 shadow'
+                        : 'text-stone-400 hover:text-stone-200'
+                    }`}
+                  >
+                    <span>{hero.avatarEmoji}</span>
+                    <span>{hero.name.split(' ')[0]}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Tabletop d20 Roll Mode Toggle */}
+            <button
+              onClick={() => {
+                sfx.playClick();
+                setTabletopRollMode((prev) => !prev);
+              }}
+              title="Переключить между виртуальным броском и вводом реального кубика d20 со стола"
+              className={`px-3 py-1.5 rounded-xl border text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                tabletopRollMode
+                  ? 'bg-emerald-500/25 border-emerald-400 text-emerald-200 shadow-[0_0_15px_rgba(16,185,129,0.25)]'
+                  : 'bg-stone-900/90 border-stone-800 text-stone-300 hover:border-stone-700'
+              }`}
+            >
+              <Dices className="w-3.5 h-3.5 text-amber-400" />
+              <span>{tabletopRollMode ? `🎯 Стол d20 (${manualD20Roll})` : '🎲 Авто-d20'}</span>
+            </button>
+
             {/* 1. Mastery Level */}
-            <div className="rounded-xl bg-stone-900/90 border border-stone-800 px-3 py-1.5 flex items-center gap-2.5">
+            <div className="rounded-xl bg-stone-900/90 border border-stone-800 px-3 py-1.5 flex items-center gap-2">
               <Award className="w-4 h-4 text-amber-400 shrink-0" />
               <div>
-                <div className="flex items-center gap-2 text-xs">
+                <div className="flex items-center gap-1.5 text-xs">
                   <span className="font-semibold text-stone-100">
-                    Ур. {alchemistLevel}
+                    Мастерство {alchemistLevel}
                   </span>
                   <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono text-[10px] font-bold">
-                    Бонус +{proficiencyBonus}
+                    +{proficiencyBonus}
                   </span>
                 </div>
-                <div className="w-24 h-1.5 rounded-full bg-stone-800 mt-1 overflow-hidden">
+                <div className="w-20 h-1.5 rounded-full bg-stone-800 mt-1 overflow-hidden">
                   <div
                     className="h-full bg-amber-400 transition-all"
                     style={{
@@ -709,14 +805,11 @@ export function App() {
                   />
                 </div>
               </div>
-              <span className="text-[10px] font-mono text-stone-400">
-                {xp}/{nextLevelXp} XP
-              </span>
             </div>
 
             {/* 2. Stamina & Exhaustion */}
             <div
-              className={`rounded-xl border px-3 py-1.5 flex items-center gap-2.5 ${
+              className={`rounded-xl border px-3 py-1.5 flex items-center gap-2 ${
                 isExhausted
                   ? 'bg-rose-950/50 border-rose-500/60'
                   : 'bg-stone-900/90 border-stone-800'
@@ -732,21 +825,16 @@ export function App() {
                   <span className="font-mono font-bold text-stone-100">
                     {stamina}/{maxStamina} ⚡
                   </span>
-                  {isExhausted && (
-                    <span className="text-[10px] font-mono text-rose-300 font-semibold">
-                      ИСТОЩЕНИЕ (Помеха d20)
-                    </span>
-                  )}
                 </div>
-                <div className="text-[10px] text-stone-400">Энергия дня</div>
+                <div className="text-[10px] text-stone-400">Энергия</div>
               </div>
               <button
                 onClick={handleLongRest}
-                title="Долгий отдых в Таверне (восстанавливает энергию и обновляет заказы Гильдии)"
-                className="ml-1 px-2.5 py-1 rounded-lg bg-indigo-500/25 hover:bg-indigo-500/35 border border-indigo-400/40 text-indigo-200 text-[11px] font-medium flex items-center gap-1 transition-colors"
+                title="Долгий отдых на Дальнем Камне (восстанавливает энергию и обновляет поручения)"
+                className="ml-1 px-2 py-1 rounded-lg bg-indigo-500/25 hover:bg-indigo-500/35 border border-indigo-400/40 text-indigo-200 text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer"
               >
                 <Moon className="w-3 h-3" />
-                <span>Отдых (20 gp)</span>
+                <span>Отдых</span>
               </button>
             </div>
 
@@ -757,19 +845,31 @@ export function App() {
                 <div className="font-mono font-bold text-xs text-amber-300">
                   {gold} gp
                 </div>
-                <div className="text-[10px] text-amber-200/70">Золото</div>
+                <div className="text-[10px] text-amber-200/70">Казна</div>
               </div>
             </div>
 
-            {/* Jev Engine Settings & Audio */}
+            {/* DM Mode, Jev SDK & Audio */}
             <div className="flex items-center gap-1.5">
               <button
+                onClick={() => {
+                  sfx.playClick();
+                  setShowDmModal(true);
+                }}
+                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/25 to-purple-500/25 hover:from-amber-500/35 hover:to-purple-500/35 border border-amber-400/60 text-xs font-display font-bold text-amber-200 flex items-center gap-1.5 shadow cursor-pointer"
+                title="Открыть Панель Ведущего (выдача трофеев без траты энергии и создание монстров со стола)"
+              >
+                <Crown className="w-3.5 h-3.5 text-amber-300" />
+                <span>Режим ГМ</span>
+              </button>
+
+              <button
                 onClick={() => setShowApiKeyModal(true)}
-                className="px-2.5 py-1.5 rounded-xl bg-stone-900 hover:bg-stone-800 border border-stone-700 text-xs font-mono text-stone-300 flex items-center gap-1.5"
+                className="px-2.5 py-1.5 rounded-xl bg-stone-900 hover:bg-stone-800 border border-stone-700 text-xs font-mono text-stone-300 flex items-center gap-1.5 cursor-pointer"
                 title="Настроить ключ TypeSafe AI Jev SDK"
               >
                 <KeyRound className="w-3.5 h-3.5 text-amber-400" />
-                <span className="hidden xl:inline">Jev SDK</span>
+                <span className="hidden xl:inline">Jev</span>
               </button>
 
               <button
@@ -778,7 +878,7 @@ export function App() {
                   setSoundEnabled(next);
                   sfx.enabled = next;
                 }}
-                className="p-2 rounded-xl bg-stone-900 hover:bg-stone-800 border border-stone-800 text-stone-300"
+                className="p-2 rounded-xl bg-stone-900 hover:bg-stone-800 border border-stone-800 text-stone-300 cursor-pointer"
                 title="Звуковые эффекты"
               >
                 {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
@@ -786,7 +886,7 @@ export function App() {
 
               <button
                 onClick={handleResetSave}
-                className="p-2 rounded-xl bg-stone-900 hover:bg-rose-950/60 border border-stone-800 text-stone-400 hover:text-rose-300"
+                className="p-2 rounded-xl bg-stone-900 hover:bg-rose-950/60 border border-stone-800 text-stone-400 hover:text-rose-300 cursor-pointer"
                 title="Сбросить сохранение"
               >
                 <RotateCcw className="w-4 h-4" />
@@ -800,8 +900,8 @@ export function App() {
       <main className="flex-1 max-w-[1600px] w-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* LEFT & CENTER WORKSPACE (8 cols) */}
         <div className="lg:col-span-8 flex flex-col gap-4">
-          {/* Navigation Bar between the 3 Core Screens */}
-          <div className="grid grid-cols-3 gap-2 p-1.5 rounded-2xl bg-[#121018] border border-stone-800/90">
+          {/* Navigation Bar between the 4 Core Screens */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-1.5 rounded-2xl bg-[#121018] border border-stone-800/90">
             <button
               onClick={() => {
                 sfx.playClick();
@@ -813,8 +913,8 @@ export function App() {
                   : 'text-stone-400 hover:text-stone-200 hover:bg-stone-900/60'
               }`}
             >
-              <Flame className="w-4 h-4 text-amber-400" />
-              <span>1. Алхимический Стол</span>
+              <Flame className="w-4 h-4 text-amber-400 shrink-0" />
+              <span className="truncate">1. Тигель Дальнего Камня</span>
             </button>
 
             <button
@@ -828,8 +928,25 @@ export function App() {
                   : 'text-stone-400 hover:text-stone-200 hover:bg-stone-900/60'
               }`}
             >
-              <Compass className="w-4 h-4 text-emerald-400" />
-              <span>2. Бестиарий (Harvest)</span>
+              <Compass className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span className="truncate">2. Бестиарий ({allMonsters.length})</span>
+            </button>
+
+            <button
+              onClick={() => {
+                sfx.playClick();
+                setActiveMainTab('hero_raid');
+              }}
+              className={`py-2.5 px-3 rounded-xl font-display font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all ${
+                activeMainTab === 'hero_raid'
+                  ? 'bg-gradient-to-r from-rose-500/25 to-amber-500/20 text-rose-200 border border-rose-500/50 shadow-lg'
+                  : 'text-stone-400 hover:text-stone-200 hover:bg-stone-900/60'
+              }`}
+            >
+              <Swords className="w-4 h-4 text-rose-400 shrink-0" />
+              <span className="truncate">
+                3. {activeHero.name.split(' ')[0]} и Вылазки ({Object.values(heroLoadout).filter(Boolean).length}/6)
+              </span>
             </button>
 
             <button
@@ -843,12 +960,50 @@ export function App() {
                   : 'text-stone-400 hover:text-stone-200 hover:bg-stone-900/60'
               }`}
             >
-              <ShoppingBag className="w-4 h-4 text-amber-400" />
-              <span>
-                3. Гильдия и Лавка ({bounties.filter((b) => !b.completed).length})
+              <ShoppingBag className="w-4 h-4 text-amber-400 shrink-0" />
+              <span className="truncate">
+                4. Поручения и Логово ({bounties.filter((b) => !b.completed).length})
               </span>
             </button>
           </div>
+
+          {/* TABLETOP REAL D20 ROLL BAR (Shown when Tabletop Roll Mode is active) */}
+          {tabletopRollMode && (
+            <div className="rounded-2xl border border-emerald-500/50 bg-emerald-950/25 px-4 py-3 flex flex-wrap items-center justify-between gap-3 shadow-lg">
+              <div>
+                <div className="text-xs font-display font-bold text-emerald-200 flex items-center gap-1.5">
+                  <Dices className="w-4 h-4 text-emerald-400" />
+                  <span>Режим живого стола: укажите, сколько выпало на вашем физическом d20 (или в чате Foundry)</span>
+                </div>
+                <p className="text-[11px] text-stone-400 mt-0.5">
+                  Ремесленник: <strong className="text-amber-200">{activeHero.name}</strong> (Крафт +{proficiencyBonus} / Разделка +{Math.max(proficiencyBonus, activeHero.harvestBonus)})
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {Array.from({ length: 20 }, (_, i) => i + 1).map((val) => (
+                  <button
+                    key={val}
+                    type="button"
+                    onClick={() => {
+                      sfx.playClick();
+                      setManualD20Roll(val);
+                    }}
+                    className={`w-7 h-7 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
+                      manualD20Roll === val
+                        ? 'bg-amber-400 text-stone-950 ring-2 ring-amber-200 scale-105'
+                        : val === 20
+                        ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/50 hover:bg-emerald-900'
+                        : val === 1
+                        ? 'bg-rose-950/80 text-rose-300 border border-rose-500/50 hover:bg-rose-900'
+                        : 'bg-stone-900 text-stone-300 hover:bg-stone-800 border border-stone-700'
+                    }`}
+                  >
+                    {val}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* LAST ROLL BANNER (d20 feedback) */}
           {lastRoll && (
@@ -912,7 +1067,7 @@ export function App() {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <h2 className="font-display font-bold text-base text-amber-200">
-                      Рабочий станок синтеза
+                      Мастерская Дальнего Камня • Станок синтеза
                     </h2>
                     <p className="text-xs text-stone-400">
                       Выбор станка задает матрицу архетипов <code className="text-amber-300">choice(itemArchetype)</code> для модели Jev
@@ -1028,10 +1183,12 @@ export function App() {
                   {/* Synthesis Action & d20 Preview (5 cols) */}
                   <div className="md:col-span-5 flex flex-col justify-between rounded-2xl bg-gradient-to-br from-amber-950/30 via-stone-900/90 to-purple-950/30 border border-amber-500/30 p-4 space-y-3">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-mono text-stone-400">Проверка навыка:</span>
+                      <span className="font-mono text-stone-400">
+                        Проверка ({activeHero.name.split(' ')[0]}):
+                      </span>
                       <span className="font-mono font-bold text-amber-300">
-                        d20 + {proficiencyBonus}{' '}
-                        {isExhausted ? '(с Помехой!)' : ''} vs СЛ{' '}
+                        {tabletopRollMode ? `d20(${manualD20Roll})` : 'd20'} + {proficiencyBonus}{' '}
+                        {isExhausted && !tabletopRollMode ? '(с Помехой!)' : ''} vs СЛ{' '}
                         {crucibleItems.length >= 2 ? effectiveDc : '—'}
                       </span>
                     </div>
@@ -1085,7 +1242,9 @@ export function App() {
                       <Dices className="w-5 h-5" />
                       <span>
                         {isRolling
-                          ? 'Бросок кубика d20...'
+                          ? 'Синтез...'
+                          : tabletopRollMode
+                          ? `Синтезировать (Кубик со стола: ${manualD20Roll} + ${proficiencyBonus} = ${manualD20Roll + proficiencyBonus})`
                           : `Синтезировать (Бросок d20 • 1⚡)`}
                       </span>
                     </button>
@@ -1163,16 +1322,28 @@ export function App() {
                                 JEI
                               </button>
                               {item.kind === 'crafted' && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setInspectedItem(item);
-                                  }}
-                                  title="Открыть D&D Статблок"
-                                  className="p-1 rounded bg-stone-900/90 hover:bg-stone-800 text-stone-300 border border-stone-700"
-                                >
-                                  <Eye className="w-3 h-3" />
-                                </button>
+                                <>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setHaggleItem(item);
+                                    }}
+                                    title="Торговаться с NPC-скупщиком (Jev)"
+                                    className="p-1 rounded bg-stone-900/90 hover:bg-emerald-950 text-emerald-300 border border-stone-700"
+                                  >
+                                    <Handshake className="w-3 h-3" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setInspectedItem(item);
+                                    }}
+                                    title="Открыть 3D-модель и D&D Статблок"
+                                    className="p-1 rounded bg-stone-900/90 hover:bg-stone-800 text-stone-300 border border-stone-700"
+                                  >
+                                    <Eye className="w-3 h-3" />
+                                  </button>
+                                </>
                               )}
                             </div>
                           </div>
@@ -1182,7 +1353,12 @@ export function App() {
                               {item.name}
                             </div>
                             <div className="flex items-center justify-between mt-1 text-[10px] font-mono">
-                              <span className={rarity.text}>{rarity.label}</span>
+                              <span className={rarity.text}>
+                                {rarity.label}
+                                {item.craftGeneration && item.craftGeneration >= 2
+                                  ? ` • T${item.craftGeneration}`
+                                  : ''}
+                              </span>
                               <span className="text-stone-300 font-bold">
                                 x{remaining}
                                 {inCrucible > 0 ? ` (${inCrucible} в котле)` : ''}
@@ -1206,22 +1382,22 @@ export function App() {
               <div className="rounded-2xl border border-stone-800 bg-[#13111c]/95 p-4 flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h2 className="font-display font-bold text-base text-emerald-300">
-                    Бестиарий Подземья: Быстрая охота и сбор органов (Harvest)
+                    Бестиарий «Мира Гильдий» и Подземья: Охота и разделка ({activeHero.name})
                   </h2>
                   <p className="text-xs text-stone-400">
-                    Выберите монстра и бросьте <code className="text-amber-300">d20 + {proficiencyBonus + (hasUpgrade('harvest_bonus_2') ? 2 : 0)}</code>. Вы получаете все трофеи, чей порог СЛ (DC) вы пробили одним броском!
+                    Выберите существо и бросьте <code className="text-amber-300">{tabletopRollMode ? `d20(${manualD20Roll})` : 'd20'} + {Math.max(proficiencyBonus, activeHero.harvestBonus) + (hasUpgrade('harvest_bonus_2') ? 2 : 0)}</code>. Вы получаете все трофеи, чей порог СЛ (DC) пробит!
                   </p>
                 </div>
                 <div className="text-xs font-mono text-stone-300 bg-stone-900 px-3 py-1.5 rounded-xl border border-stone-800">
-                  Модификатор разделки:{' '}
+                  Модификатор ({activeHero.name.split(' ')[0]}):{' '}
                   <strong className="text-emerald-400">
-                    +{proficiencyBonus + (hasUpgrade('harvest_bonus_2') ? 2 : 0)}
+                    +{Math.max(proficiencyBonus, activeHero.harvestBonus) + (hasUpgrade('harvest_bonus_2') ? 2 : 0)}
                   </strong>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {MONSTERS.map((monster) => {
+                {allMonsters.map((monster) => {
                   const locked = alchemistLevel < monster.minAlchemistLevel;
                   const isHighlighted = highlightedMonsterId === monster.id;
 
@@ -1321,6 +1497,8 @@ export function App() {
                         <span>
                           {locked
                             ? `Требуется Уровень Мастерства ${monster.minAlchemistLevel}`
+                            : tabletopRollMode
+                            ? `Разделать со стола (d20=${manualD20Roll} • ${monster.staminaCost}⚡)`
                             : `Выследить и разделать (Бросок d20 • ${monster.staminaCost}⚡)`}
                         </span>
                       </button>
@@ -1341,10 +1519,10 @@ export function App() {
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <h2 className="font-display font-bold text-base text-amber-300">
-                      Контракты Приключенцев (Доска Заказов Гильдии — День {day})
+                      Поручения «Мира Гильдий» (Нарвеш, Ирвек, Бейрн и Дальний Камень — День {day})
                     </h2>
                     <p className="text-xs text-stone-400">
-                      Сдавайте подходящие по тегам и редкости артефакты за щедрое золото, опыт и бонусные реагенты
+                      Сдавайте подходящие по стихии и редкости артефакты союзникам и заказчикам кампании «Монстры»
                     </p>
                   </div>
                 </div>
@@ -1441,7 +1619,7 @@ export function App() {
                 {/* Shop Catalysts */}
                 <div className="rounded-2xl border border-stone-800 bg-[#13111c]/95 p-5 space-y-3">
                   <h3 className="font-display font-bold text-sm text-amber-200">
-                    Лавка Катализаторов и Заготовок
+                    Запасы Скрепа: Катализаторы и Заготовки
                   </h3>
                   <p className="text-xs text-stone-400">
                     Стабильные основы повышают совместимость <code className="text-emerald-300">noul</code> и снижают взрывоопасность реакции
@@ -1481,10 +1659,10 @@ export function App() {
                 {/* Workshop Upgrades */}
                 <div className="rounded-2xl border border-stone-800 bg-[#13111c]/95 p-5 space-y-3">
                   <h3 className="font-display font-bold text-sm text-purple-200">
-                    Оборудование Мастерской
+                    Обустройство Логова «Дальний Камень»
                   </h3>
                   <p className="text-xs text-stone-400">
-                    Постоянные улучшения лаборатории и охотничьего снаряжения
+                    Постоянные проекты развития мыса и мастерской партии
                   </p>
                   <div className="space-y-2">
                     {upgrades.map((upg) => (
@@ -1506,7 +1684,7 @@ export function App() {
 
                         {upg.purchased ? (
                           <span className="px-2.5 py-1 rounded-lg bg-emerald-950/50 border border-emerald-500/40 text-emerald-300 font-mono text-[11px] shrink-0">
-                            ✓ Куплено
+                            ✓ Построено
                           </span>
                         ) : (
                           <button
@@ -1523,6 +1701,51 @@ export function App() {
               </div>
             </div>
           )}
+
+          {/* ===================================================== */}
+          {/* SCREEN 4: HERO DOLL & AUTO-RAID DUNGEON SIMULATOR     */}
+          {/* ===================================================== */}
+          {activeMainTab === 'hero_raid' && (
+            <HeroRaidPanel
+              alchemistLevel={alchemistLevel}
+              proficiencyBonus={proficiencyBonus}
+              stamina={stamina}
+              itemsCatalog={itemsMap}
+              inventory={inventory}
+              loadout={heroLoadout}
+              monsters={allMonsters}
+              activeHeroId={activeHeroId}
+              onSelectHero={(hId) => setActiveHeroId(hId)}
+              onEquipSlot={(slot: HeroSlotType, itemId: string | undefined) => {
+                setHeroLoadout((prev) => ({
+                  ...prev,
+                  [slot]: itemId,
+                }));
+                if (itemId && itemsMap[itemId]) {
+                  showToast(`Экипировано на ${activeHero.name}: ${itemsMap[itemId].name}`);
+                }
+              }}
+              onInspectItem={(it) => setInspectedItem(it)}
+              onCompleteRaid={({ victory, monster, lootItemIds, goldEarned, xpEarned, staminaSpent }) => {
+                setStamina((prev) => Math.max(0, prev - staminaSpent));
+                setGold((prev) => prev + goldEarned);
+                setXp((prev) => prev + xpEarned);
+                setInventory((prev) => {
+                  const next = { ...prev };
+                  lootItemIds.forEach((id) => {
+                    next[id] = (next[id] || 0) + 1;
+                  });
+                  return next;
+                });
+                markDiscovered(lootItemIds);
+                showToast(
+                  victory
+                    ? `🏆 ${activeHero.name} победил «${monster.name}»! +${lootItemIds.length} трофея, +${goldEarned} gp!`
+                    : `${activeHero.name} отступил из боя с «${monster.name}», унеся 1 трофей и +${goldEarned} gp.`
+                );
+              }}
+            />
+          )}
         </div>
 
         {/* RIGHT SIDEBAR: ALWAYS-ON JEI GRIMOIRE CODEX (4 cols) */}
@@ -1532,7 +1755,7 @@ export function App() {
             discoveredItemIds={discoveredItemIds}
             inventory={inventory}
             recipes={recipes}
-            monsters={MONSTERS}
+            monsters={allMonsters}
             selectedJeiItemId={selectedJeiItemId}
             jeiTab={jeiTab}
             onSelectJeiItem={(id, tab) => {
@@ -1553,12 +1776,149 @@ export function App() {
         </div>
       </main>
 
-      {/* D&D 5e ITEM STATBLOCK MODAL */}
+      {/* D&D 5e ITEM STATBLOCK MODAL (with 3D Turntable + PNG/Foundry Export) */}
       <ItemStatblockModal
         item={inspectedItem}
         inventoryCount={inspectedItem ? inventory[inspectedItem.id] || 0 : 0}
         onClose={() => setInspectedItem(null)}
         onSellItem={handleSellItem}
+        onAddToCrucible={(it) => {
+          setActiveMainTab('crucible');
+          handleAddReagentToCrucible(it.id);
+        }}
+        onEquipItem={(it) => {
+          const slot = getHeroSlotForItem(it);
+          if (slot) {
+            setHeroLoadout((prev) => ({ ...prev, [slot]: it.id }));
+            setActiveMainTab('hero_raid');
+            showToast(`Экипировано в слот (${activeHero.name}): ${it.name}`);
+          }
+        }}
+        onOpenHaggle={(it) => {
+          setInspectedItem(null);
+          setHaggleItem(it);
+        }}
+      />
+
+      {/* NPC COLLECTOR HAGGLE MODAL (Jev System-1 Negotiation) */}
+      <MerchantHaggleModal
+        item={haggleItem}
+        inventoryCount={haggleItem ? inventory[haggleItem.id] || 0 : 0}
+        proficiencyBonus={proficiencyBonus}
+        useLiveJev={useLiveJev}
+        apiKey={customApiKey}
+        tabletopRollMode={tabletopRollMode}
+        onClose={() => setHaggleItem(null)}
+        onCompleteSale={(itemId, finalGold, xpBonus) => {
+          const sold = itemsMap[itemId];
+          setInventory((prev) => ({
+            ...prev,
+            [itemId]: Math.max(0, (prev[itemId] || 0) - 1),
+          }));
+          setGold((prev) => prev + finalGold);
+          setXp((prev) => prev + xpBonus);
+          showToast(
+            `Сделка заключена! Продано «${sold?.name || itemId}» за +${finalGold} gp (+${xpBonus} XP)!`
+          );
+        }}
+      />
+
+      {/* DM MASTER MODE MODAL (Grant Campaign Trophies & Custom Monster Creator) */}
+      <DmMasterModal
+        isOpen={showDmModal}
+        onClose={() => setShowDmModal(false)}
+        monsters={allMonsters}
+        itemsMap={itemsMap}
+        inventory={inventory}
+        gold={gold}
+        onGrantItems={(itemIds, countEach = 1) => {
+          setInventory((prev) => {
+            const next = { ...prev };
+            itemIds.forEach((id) => {
+              next[id] = (next[id] || 0) + countEach;
+            });
+            return next;
+          });
+          markDiscovered(itemIds);
+          const names = itemIds.map((id) => itemsMap[id]?.name || id).join(', ');
+          showToast(`🎁 ГМ выдал партии: ${names}`);
+        }}
+        onGrantGold={(amount) => {
+          setGold((prev) => prev + amount);
+          showToast(`🪙 ГМ пополнил казну Дальнего Камня: +${amount} gp!`);
+        }}
+        onRestoreStamina={() => {
+          setStamina(maxStamina);
+          showToast(`⚡ ГМ полностью восстановил энергию партии (${maxStamina}⚡)!`);
+        }}
+        onCreateCustomMonster={(newMonster, newItems, grantImmediately) => {
+          setItemsMap((prev) => {
+            const next = { ...prev };
+            newItems.forEach((it) => {
+              next[it.id] = it;
+            });
+            return next;
+          });
+          setCustomMonsters((prev) => [newMonster, ...prev]);
+          markDiscovered(newItems.map((i) => i.id));
+          if (grantImmediately) {
+            setInventory((prev) => {
+              const next = { ...prev };
+              newItems.forEach((it) => {
+                next[it.id] = (next[it.id] || 0) + 1;
+              });
+              return next;
+            });
+          }
+          showToast(
+            `👑 Создан босс «${newMonster.name}» и 3 трофея${
+              grantImmediately ? ' (выданы в сумку!)' : ''
+            }!`
+          );
+        }}
+        onExportCampaignJson={() =>
+          JSON.stringify(
+            {
+              itemsMap,
+              inventory,
+              discoveredItemIds,
+              recipes,
+              heroLoadout,
+              activeHeroId,
+              customMonsters,
+              day,
+              xp,
+              gold,
+              stamina,
+              upgrades,
+              bounties,
+            },
+            null,
+            2
+          )
+        }
+        onImportCampaignJson={(rawJson) => {
+          try {
+            const parsed = JSON.parse(rawJson);
+            if (parsed.itemsMap) setItemsMap({ ...INITIAL_ITEMS, ...parsed.itemsMap });
+            if (parsed.inventory) setInventory(parsed.inventory);
+            if (parsed.discoveredItemIds) setDiscoveredItemIds(parsed.discoveredItemIds);
+            if (parsed.recipes) setRecipes(parsed.recipes);
+            if (parsed.heroLoadout) setHeroLoadout(parsed.heroLoadout);
+            if (parsed.activeHeroId) setActiveHeroId(parsed.activeHeroId);
+            if (Array.isArray(parsed.customMonsters)) setCustomMonsters(parsed.customMonsters);
+            if (typeof parsed.day === 'number') setDay(parsed.day);
+            if (typeof parsed.xp === 'number') setXp(parsed.xp);
+            if (typeof parsed.gold === 'number') setGold(parsed.gold);
+            if (typeof parsed.stamina === 'number') setStamina(parsed.stamina);
+            if (parsed.upgrades) setUpgrades(parsed.upgrades);
+            if (parsed.bounties) setBounties(parsed.bounties);
+            showToast('✓ Состояние партии Дальнего Камня синхронизировано!');
+            return true;
+          } catch {
+            return false;
+          }
+        }}
       />
 
       {/* TYPESAFE AI JEV SDK CONFIGURATION MODAL */}

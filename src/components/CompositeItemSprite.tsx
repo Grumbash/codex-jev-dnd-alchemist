@@ -3,8 +3,11 @@ import { ElementType, GameItem, Monster, Rarity } from '../types/game';
 
 interface CompositeItemSpriteProps {
   item: GameItem;
-  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
   className?: string;
+  yawDeg?: number;
+  pitchDeg?: number;
+  svgId?: string;
 }
 
 const SIZE_CLASSES: Record<NonNullable<CompositeItemSpriteProps['size']>, string> = {
@@ -13,6 +16,7 @@ const SIZE_CLASSES: Record<NonNullable<CompositeItemSpriteProps['size']>, string
   md: 'w-12 h-12',
   lg: 'w-16 h-16',
   xl: 'w-24 h-24',
+  '2xl': 'w-36 h-36',
 };
 
 interface ElementPalette {
@@ -122,7 +126,7 @@ type MaterialRole =
 interface PolyFace3D {
   verts: [Vec3, Vec3, Vec3] | [Vec3, Vec3, Vec3, Vec3];
   mat: MaterialRole;
-  layer: 1 | 2 | 3; // 1 = Back/Chassis, 2 = Main Blade/Body, 3 = Foreground Gems & Special Effect
+  layer: 1 | 2 | 3;
   opacity?: number;
   facetBias?: number;
 }
@@ -200,7 +204,7 @@ function dotVec(a: Vec3, b: Vec3): number {
 }
 
 /**
- * Creates a faceted 3D pyramid fan over a polygon ring towards an apex
+ * Creates a closed double-sided 3D pyramid crystal fan over a polygon ring
  */
 function makePyramidFaces(
   baseVerts: Vec3[],
@@ -210,6 +214,7 @@ function makePyramidFaces(
   opacity = 1
 ): PolyFace3D[] {
   const faces: PolyFace3D[] = [];
+  const backApex: Vec3 = [apex[0], apex[1], -Math.abs(apex[2]) * 0.65];
   for (let i = 0; i < baseVerts.length; i++) {
     const next = baseVerts[(i + 1) % baseVerts.length];
     faces.push({
@@ -219,12 +224,19 @@ function makePyramidFaces(
       opacity,
       facetBias: ((i % 3) - 1) * 0.09,
     });
+    faces.push({
+      verts: [next, baseVerts[i], backApex],
+      mat,
+      layer,
+      opacity,
+      facetBias: -0.12 + ((i % 3) - 1) * 0.06,
+    });
   }
   return faces;
 }
 
 /**
- * Creates a 6-facet 3D diamond/octahedron crystal at (cx, cy, cz)
+ * Creates a full 8-facet 3D octahedron crystal at (cx, cy, cz)
  */
 function makeOctahedronFaces(
   cx: number,
@@ -242,7 +254,7 @@ function makeOctahedronFaces(
   const left: Vec3 = [cx - rx, cy, cz];
   const right: Vec3 = [cx + rx, cy, cz];
   const front: Vec3 = [cx, cy, cz + rz];
-  const back: Vec3 = [cx, cy, cz - rz * 0.5];
+  const back: Vec3 = [cx, cy, cz - rz * 0.75];
 
   return [
     { verts: [top, left, front], mat, layer, opacity, facetBias: 0.16 },
@@ -251,11 +263,13 @@ function makeOctahedronFaces(
     { verts: [bot, right, front], mat, layer, opacity, facetBias: -0.18 },
     { verts: [top, back, left], mat, layer, opacity, facetBias: 0.06 },
     { verts: [top, right, back], mat, layer, opacity, facetBias: -0.12 },
+    { verts: [bot, left, back], mat, layer, opacity, facetBias: -0.08 },
+    { verts: [bot, back, right], mat, layer, opacity, facetBias: -0.2 },
   ];
 }
 
 /**
- * Creates a segmented low-poly ridge strip (e.g. sword blade, whip, wand, horn, tentacle)
+ * Creates a closed diamond-cross-section 3D ridge blade/shaft with front & back ridges
  */
 function makeRidgeBladeFaces(
   spine: Array<{ x: number; y: number; z: number; w: number; skewY?: number }>,
@@ -270,41 +284,73 @@ function makeRidgeBladeFaces(
     const curSkew = cur.skewY ?? 0;
     const nxtSkew = nxt.skewY ?? 0;
 
-    const cMid: Vec3 = [cur.x, cur.y, cur.z];
+    const cMidFront: Vec3 = [cur.x, cur.y, cur.z];
+    const cMidBack: Vec3 = [cur.x, cur.y, -cur.z * 0.65];
     const cLeft: Vec3 = [cur.x - cur.w, cur.y + curSkew, 0];
     const cRight: Vec3 = [cur.x + cur.w, cur.y - curSkew, 0];
 
-    const nMid: Vec3 = [nxt.x, nxt.y, nxt.z];
+    const nMidFront: Vec3 = [nxt.x, nxt.y, nxt.z];
+    const nMidBack: Vec3 = [nxt.x, nxt.y, -nxt.z * 0.65];
     const nLeft: Vec3 = [nxt.x - nxt.w, nxt.y + nxtSkew, 0];
     const nRight: Vec3 = [nxt.x + nxt.w, nxt.y - nxtSkew, 0];
 
     if (cur.w > 0.1 || nxt.w > 0.1) {
+      // Front side facets
       faces.push({
-        verts: [cLeft, cMid, nMid],
+        verts: [cLeft, cMidFront, nMidFront],
         mat: matLeft,
         layer,
         facetBias: 0.12 + (i % 2) * 0.06,
       });
       if (nxt.w > 0.1) {
         faces.push({
-          verts: [cLeft, nMid, nLeft],
+          verts: [cLeft, nMidFront, nLeft],
           mat: matLeft,
           layer,
           facetBias: 0.02 - (i % 2) * 0.05,
         });
       }
       faces.push({
-        verts: [cMid, cRight, nMid],
+        verts: [cMidFront, cRight, nMidFront],
         mat: matRight,
         layer,
         facetBias: -0.1 + (i % 2) * 0.05,
       });
       if (nxt.w > 0.1) {
         faces.push({
-          verts: [cRight, nRight, nMid],
+          verts: [cRight, nRight, nMidFront],
           mat: matRight,
           layer,
           facetBias: -0.2 - (i % 2) * 0.04,
+        });
+      }
+      // Back side facets (visible when rotated in 3D!)
+      faces.push({
+        verts: [cMidBack, cLeft, nMidBack],
+        mat: matRight,
+        layer,
+        facetBias: -0.06 + (i % 2) * 0.05,
+      });
+      if (nxt.w > 0.1) {
+        faces.push({
+          verts: [cLeft, nLeft, nMidBack],
+          mat: matRight,
+          layer,
+          facetBias: -0.14,
+        });
+      }
+      faces.push({
+        verts: [cRight, cMidBack, nMidBack],
+        mat: matLeft,
+        layer,
+        facetBias: 0.04,
+      });
+      if (nxt.w > 0.1) {
+        faces.push({
+          verts: [cRight, nMidBack, nRight],
+          mat: matLeft,
+          layer,
+          facetBias: -0.08,
         });
       }
     }
@@ -312,32 +358,55 @@ function makeRidgeBladeFaces(
   return faces;
 }
 
-function rotatePointAroundCenter(p: Vec3, degZ: number, tiltX = 0.12, tiltY = -0.14): Vec3 {
+function rotatePoint3D(
+  p: Vec3,
+  rollDegZ: number,
+  yawDegY = 0,
+  pitchDegX = 0
+): Vec3 {
   const cx = 50;
   const cy = 50;
-  const radZ = (degZ * Math.PI) / 180;
+
+  let x = p[0] - cx;
+  let y = p[1] - cy;
+  let z = p[2] - 8; // center Z around object mass
+
+  // 1. Roll in Z plane (default item diagonal stance)
+  const radZ = (rollDegZ * Math.PI) / 180;
   const cosZ = Math.cos(radZ);
   const sinZ = Math.sin(radZ);
+  const x1 = x * cosZ - y * sinZ;
+  const y1 = x * sinZ + y * cosZ;
+  const z1 = z;
 
-  const dx = p[0] - cx;
-  const dy = p[1] - cy;
-  const dz = p[2];
+  // 2. Yaw around Y axis (horizontal mouse drag turntable)
+  const radY = ((yawDegY - 8) * Math.PI) / 180;
+  const cosY = Math.cos(radY);
+  const sinY = Math.sin(radY);
+  const x2 = x1 * cosY + z1 * sinY;
+  const y2 = y1;
+  const z2 = -x1 * sinY + z1 * cosY;
 
-  const rx = dx * cosZ - dy * sinZ;
-  const ry = dx * sinZ + dy * cosZ;
+  // 3. Pitch around X axis (vertical mouse drag tilt)
+  const radX = ((pitchDegX + 7) * Math.PI) / 180;
+  const cosX = Math.cos(radX);
+  const sinX = Math.sin(radX);
+  const x3 = x2;
+  const y3 = y2 * cosX - z2 * sinX;
+  const z3 = y2 * sinX + z2 * cosX;
 
-  const px = cx + rx + dz * tiltY;
-  const py = cy + ry - dz * tiltX;
-  const pz = dz + rx * -0.15 + ry * -0.15;
-
-  return [px, py, pz];
+  // Mild perspective scale
+  const persp = 1 + z3 * 0.0032;
+  return [cx + x3 * persp, cy + y3 * persp, z3];
 }
 
 function projectAndShadeFaces(
   faces: PolyFace3D[],
   primaryPalette: ElementPalette,
   secondaryPalette: ElementPalette,
-  degZ = 0
+  degZ = 0,
+  yawDegY = 0,
+  pitchDegX = 0
 ): RenderedPolygon[] {
   const keyLight: Vec3 = normVec([-0.55, -0.65, 0.75]);
   const rimLight: Vec3 = normVec([0.75, 0.45, 0.35]);
@@ -360,7 +429,9 @@ function projectAndShadeFaces(
 
   return faces
     .map((face, idx) => {
-      const transformed = face.verts.map((v) => rotatePointAroundCenter(v, degZ));
+      const transformed = face.verts.map((v) =>
+        rotatePoint3D(v, degZ, yawDegY, pitchDegX)
+      );
       const v0 = transformed[0];
       const v1 = transformed[1];
       const v2 = transformed[2];
@@ -1179,6 +1250,9 @@ export const CompositeItemSprite: React.FC<CompositeItemSpriteProps> = ({
   item,
   size = 'md',
   className = '',
+  yawDeg = 0,
+  pitchDeg = 0,
+  svgId,
 }) => {
   const uid = useId().replace(/:/g, '');
 
@@ -1196,6 +1270,7 @@ export const CompositeItemSprite: React.FC<CompositeItemSpriteProps> = ({
   const rarity: Rarity = item.rarity ?? 'common';
   const isCursed = Boolean(item.isCursed);
   const isMasterwork = Boolean(item.isMasterwork);
+  const craftGen = item.craftGeneration ?? 1;
 
   const pPal = ELEMENT_PALETTES[primaryElement] ?? ELEMENT_PALETTES.force;
   const sPal = ELEMENT_PALETTES[secondaryElement] ?? pPal;
@@ -1210,7 +1285,14 @@ export const CompositeItemSprite: React.FC<CompositeItemSpriteProps> = ({
     const effectFaces = buildSpecialEffectLowPolyOverlay(item.specialEffect);
     const allFaces = [...baseMesh.faces, ...effectFaces];
 
-    const projected = projectAndShadeFaces(allFaces, pPal, sPal, baseMesh.rotationZ);
+    const projected = projectAndShadeFaces(
+      allFaces,
+      pPal,
+      sPal,
+      baseMesh.rotationZ,
+      yawDeg,
+      pitchDeg
+    );
 
     return {
       layer1Polys: projected.filter((p) => p.layer === 1),
@@ -1218,7 +1300,7 @@ export const CompositeItemSprite: React.FC<CompositeItemSpriteProps> = ({
       layer3Polys: projected.filter((p) => p.layer === 3),
       isPhaseShift: item.specialEffect === 'phase_shift',
     };
-  }, [item, pPal, sPal]);
+  }, [item, pPal, sPal, yawDeg, pitchDeg]);
 
   // Low-poly octagonal chiseled background tablet facets
   const bgOctagonFacets = [
@@ -1239,6 +1321,7 @@ export const CompositeItemSprite: React.FC<CompositeItemSpriteProps> = ({
       className={`relative inline-flex items-center justify-center shrink-0 select-none ${SIZE_CLASSES[size]} ${className}`}
     >
       <svg
+        id={svgId}
         viewBox="0 0 100 100"
         className="w-full h-full overflow-visible"
         xmlns="http://www.w3.org/2000/svg"
@@ -1271,6 +1354,36 @@ export const CompositeItemSprite: React.FC<CompositeItemSpriteProps> = ({
             strokeWidth={rarity === 'common' ? '1.8' : '2.6'}
             strokeLinejoin="bevel"
           />
+
+          {/* Higher-Order Synthesis (Infinite Craft Tier 2+) Low-Poly Orbiting Crystal Ring */}
+          {craftGen >= 2 && (
+            <g opacity="0.92">
+              <polygon
+                points="20,4 26,1 28,9"
+                fill={pPal.primary}
+                stroke="#ffffff"
+                strokeWidth="0.5"
+              />
+              <polygon
+                points="80,4 72,9 74,1"
+                fill={sPal.primary}
+                stroke="#ffffff"
+                strokeWidth="0.5"
+              />
+              <polygon
+                points="20,96 28,91 26,99"
+                fill={sPal.primary}
+                stroke="#ffffff"
+                strokeWidth="0.5"
+              />
+              <polygon
+                points="80,96 74,99 72,91"
+                fill={pPal.primary}
+                stroke="#ffffff"
+                strokeWidth="0.5"
+              />
+            </g>
+          )}
 
           {/* Masterwork (Nat 20) Low-Poly Golden Crown Shards */}
           {isMasterwork && (

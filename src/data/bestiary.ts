@@ -6,6 +6,12 @@ import {
   Rarity,
   WorkshopUpgrade,
 } from '../types/game';
+import {
+  GUILD_WORLD_BOUNTY_TEMPLATES,
+  GUILD_WORLD_ITEMS,
+  GUILD_WORLD_MONSTERS,
+  GUILD_WORLD_UPGRADES,
+} from './guildWorldCampaign';
 
 export const ELEMENT_META: Record<
   ElementType,
@@ -161,6 +167,7 @@ export const RARITY_META: Record<
 };
 
 export const MONSTERS: Monster[] = [
+  ...GUILD_WORLD_MONSTERS,
   {
     id: 'gelatinous_cube',
     name: 'Желатиновый Куб',
@@ -920,6 +927,7 @@ export const INITIAL_ITEMS: Record<string, GameItem> = {
     goldValue: 8,
     description: 'Спекшаяся шипящая масса после неудачного синтеза. Ходят слухи, что безумцы варят из неё взрывчатку.',
   },
+  ...GUILD_WORLD_ITEMS,
 };
 
 export const SHOP_CATALYST_IDS = [
@@ -929,129 +937,11 @@ export const SHOP_CATALYST_IDS = [
   'catalyst_elder_parchment',
 ];
 
-export const INITIAL_UPGRADES: WorkshopUpgrade[] = [
-  {
-    id: 'upgrade_3_slots',
-    name: 'Трехфазный тигель Архимага',
-    icon: '🔮',
-    description: 'Открывает 3-й слот в котле для тройного синтеза сложных D&D артефактов.',
-    costGold: 220,
-    purchased: false,
-    effectKey: 'crucible_3_slots',
-  },
-  {
-    id: 'upgrade_dc_reduction',
-    name: 'Рунные меха и стабилизатор',
-    icon: '🔥',
-    description: 'Снижает сложность (DC) всех проверок алхимии, кузни и артефакторики на 2.',
-    costGold: 160,
-    purchased: false,
-    effectKey: 'dc_reduction_2',
-  },
-  {
-    id: 'upgrade_salvage',
-    name: 'Контур аварийного возврата',
-    icon: '🛡️',
-    description: 'При провале броска d20 спасает 1 случайный реагент от превращения в шлак.',
-    costGold: 190,
-    purchased: false,
-    effectKey: 'salvage_on_fail',
-  },
-  {
-    id: 'upgrade_harvest',
-    name: 'Адамантиновый скальпель охотника',
-    icon: '🔪',
-    description: 'Дает постоянный бонус +2 ко всем броскам d20 при разделке монстров в Бестиарии.',
-    costGold: 140,
-    purchased: false,
-    effectKey: 'harvest_bonus_2',
-  },
-  {
-    id: 'upgrade_stamina',
-    name: 'Кофейник Эфирной Бодрости',
-    icon: '☕',
-    description: 'Увеличивает максимальный запас Энергии на день с 10⚡ до 14⚡.',
-    costGold: 175,
-    purchased: false,
-    effectKey: 'max_stamina_14',
-  },
-];
+export const INITIAL_UPGRADES: WorkshopUpgrade[] = GUILD_WORLD_UPGRADES;
 
 export function generateDailyBounties(day: number): GuildBounty[] {
   const templates: Omit<GuildBounty, 'id' | 'completed'>[] = [
-    {
-      clientName: 'Сэр Роланд Железнорукий',
-      clientTitle: 'Паладин Ордена Рассвета',
-      clientIcon: '🛡️',
-      questTitle: 'Экспедиция в Кислотные Шахты',
-      requestText: 'Нужна экипировка или эликсир со стихией Кислоты или Защиты (не ниже Необычного).',
-      requiredElement: 'acid',
-      minRarity: 'uncommon',
-      rewardGold: 135,
-      rewardXp: 75,
-      bonusItemId: 'catalyst_mithral_ingot',
-    },
-    {
-      clientName: 'Лира Шепот Теней',
-      clientTitle: 'Плут Гильдии Воронов',
-      clientIcon: '🗡️',
-      questTitle: 'Контракт на устранение',
-      requestText: 'Ищу смертоносный Яд или клинок со стихией Яда для тихой охоты.',
-      requiredElement: 'poison',
-      minRarity: 'uncommon',
-      rewardGold: 150,
-      rewardXp: 80,
-      bonusItemId: 'displacer_shimmer_hide',
-    },
-    {
-      clientName: 'Магистр Валькор',
-      clientTitle: 'Исследователь Дальнего Предела',
-      clientIcon: '🧙‍♂️',
-      questTitle: 'Защита от Иллитидов',
-      requestText: 'Требуется Редкий артефакт или оружие с Псионическим или Силовым резонансом.',
-      requiredElement: 'psychic',
-      minRarity: 'rare',
-      rewardGold: 240,
-      rewardXp: 120,
-      bonusItemId: 'illithid_cerebral_fluid',
-    },
-    {
-      clientName: 'Брунгильда Пламя Горна',
-      clientTitle: 'Охотница на Драконов',
-      clientIcon: '🪓',
-      questTitle: 'Ковка для кальдеры',
-      requestText: 'Принеси любое изделие Кузни со стихией Огня или Молнии (не ниже Редкого).',
-      requiredStation: 'blacksmith',
-      requiredElement: 'fire',
-      minRarity: 'rare',
-      rewardGold: 280,
-      rewardXp: 140,
-      bonusItemId: 'beholder_chitin_plate',
-    },
-    {
-      clientName: 'Мортис Бледный',
-      clientTitle: 'Некромант-отступник',
-      clientIcon: '💀',
-      questTitle: 'Дары Некрополя',
-      requestText: 'Куплю за щедрое золото предмет с Некротической энергией (не ниже Редкого).',
-      requiredElement: 'necrotic',
-      minRarity: 'rare',
-      rewardGold: 290,
-      rewardXp: 150,
-      bonusItemId: 'lich_grave_dust',
-    },
-    {
-      clientName: 'Элара Звездочет',
-      clientTitle: 'Артефактор Башни',
-      clientIcon: '🔮',
-      questTitle: 'Астральная фокусировка',
-      requestText: 'Нужно любое изделие Артефакторики (Кольцо, Жезл, Плащ или Сфера) редкости Rare+.',
-      requiredStation: 'artificer',
-      minRarity: 'rare',
-      rewardGold: 230,
-      rewardXp: 115,
-      bonusItemId: 'catalyst_silver_ring',
-    },
+    ...GUILD_WORLD_BOUNTY_TEMPLATES,
   ];
 
   // Pick 3 deterministic-per-day bounties

@@ -71,6 +71,28 @@ export interface GameItem {
   stats?: DndStatblock;
   isMasterwork?: boolean;
   isCursed?: boolean;
+  craftGeneration?: number; // 1 = normal craft, 2 = 2nd-order fusion, 3+ = higher-order synthesis
+  parentItemNames?: string[];
+}
+
+export type HeroSlotType = 'weapon' | 'offhand' | 'armor' | 'cloak' | 'jewelry' | 'belt';
+
+export type HeroLoadout = Partial<Record<HeroSlotType, string>>;
+
+export interface JevHaggleTelemetry {
+  source: 'live-jev' | 'nar-calibrated-sim';
+  latencyMs: number;
+  willAccept: {
+    noul: number; // 0..1 probability merchant accepts the demanded price
+  };
+  merchantMood: {
+    score: number; // 1..5 (1 = furious, 5 = delighted)
+  };
+  counterReaction: {
+    choice: 'accept_gladly' | 'grudging_deal' | 'counter_offer' | 'insulted_refusal';
+    probabilities: Record<string, number>;
+  };
+  finalPriceGold: number;
 }
 
 export interface MonsterDropSlot {

@@ -163,6 +163,92 @@ function jevServerMiddleware(): Plugin {
           }
         });
       });
+
+      server.middlewares.use('/api/jev/haggle', async (req, res) => {
+        if (req.method !== 'POST') {
+          res.statusCode = 405;
+          res.end(JSON.stringify({ error: 'Method Not Allowed' }));
+          return;
+        }
+
+        let rawBody = '';
+        req.on('data', (chunk) => {
+          rawBody += chunk;
+        });
+
+        req.on('end', async () => {
+          const startTime = performance.now();
+          try {
+            const body = JSON.parse(rawBody || '{}');
+            const env = loadEnv('development', process.cwd(), '');
+            const apiKey =
+              (req.headers['x-typesafe-api-key'] as string) ||
+              env.TYPESAFE_API_KEY ||
+              process.env.TYPESAFE_API_KEY;
+
+            if (!apiKey) {
+              res.statusCode = 400;
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ error: 'NO_API_KEY' }));
+              return;
+            }
+
+            const client = new TypeSafeClient({ apiKey });
+            const { answers } = await client.systemOne({
+              state: body.state,
+              questions: {
+                willAccept: noul(
+                  'Does this D&D merchant accept the player’s demanded price given their collector preferences, the item qualities, and the Charisma check result?'
+                ),
+                merchantMood: score(
+                  'How pleased or offended is the merchant during this negotiation?',
+                  [
+                    '1 - Furious and insulted',
+                    '2 - Annoyed and skeptical',
+                    '3 - Neutral and calculating',
+                    '4 - Impressed by the pitch',
+                    '5 - Delighted collector',
+                  ]
+                ),
+                counterReaction: choice(
+                  'What is the merchant’s final negotiation decision?',
+                  {
+                    accept_gladly: 'Eagerly pays the demanded price in full',
+                    grudging_deal: 'Reluctantly agrees to the demanded price',
+                    counter_offer: 'Rejects the full markup but offers a fair compromise',
+                    insulted_refusal: 'Offended by the greed or failed bluff and cuts the price',
+                  }
+                ),
+              },
+            });
+
+            const latencyMs = Math.round(performance.now() - startTime);
+            res.setHeader('Content-Type', 'application/json');
+            res.end(
+              JSON.stringify({
+                source: 'live-jev',
+                latencyMs,
+                answers: {
+                  ...answers,
+                  merchantMood: {
+                    ...answers.merchantMood,
+                    score: Math.min(5, Math.max(1, Math.round(answers.merchantMood.score + 1))),
+                  },
+                },
+              })
+            );
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(
+              JSON.stringify({
+                error: 'JEV_HAGGLE_ERROR',
+                message: err?.message || 'Failed to invoke TypeSafe Jev SDK for haggling',
+              })
+            );
+          }
+        });
+      });
     },
   };
 }

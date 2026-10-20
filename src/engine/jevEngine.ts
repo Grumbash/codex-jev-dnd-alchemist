@@ -4,6 +4,7 @@ import {
   ElementType,
   GameItem,
   JevDecisionTelemetry,
+  JevHaggleTelemetry,
   Rarity,
 } from '../types/game';
 import { ELEMENT_META, RARITY_META } from '../data/bestiary';
@@ -397,19 +398,31 @@ function computeRarityAndDc(
   volatilityScore: number,
   compatibilityNoul: number
 ): { rarity: Rarity; dc: number } {
-  const avgPower =
+  const craftedCount = reagents.filter((r) => r.kind === 'crafted').length;
+  const maxGen = Math.max(
+    1,
+    ...reagents.map((r) => r.craftGeneration ?? (r.kind === 'crafted' ? 1 : 0))
+  );
+  const rawAvgPower =
     reagents.reduce((sum, r) => sum + r.powerLevel, 0) / Math.max(1, reagents.length);
+  const avgPower = rawAvgPower + (craftedCount >= 2 ? 3.5 : craftedCount === 1 ? 2.0 : 0);
   const maxPower = Math.max(...reagents.map((r) => r.powerLevel));
   const maxRank = Math.max(...reagents.map((r) => RARITY_META[r.rarity].rank));
 
   let targetRank = maxRank;
 
+  // Higher-Order Synthesis Ascension (Infinite Craft Tier 2+):
+  // Fusing 2+ crafted items ascends the highest rarity by +1 rank!
+  if (craftedCount >= 2 && compatibilityNoul >= 0.38) {
+    targetRank = Math.min(6, maxRank + 1);
+  } else if (craftedCount === 1 && compatibilityNoul >= 0.45) {
+    targetRank = Math.max(targetRank, 2);
+  }
+
   // Floor based on highest monster CR / powerLevel in the crucible:
-  // CR 13-20 (Beholder, Lich, Red Dragon -> powerLevel 12..20) => at least Rare (3) or Very Rare (4)
   if (maxPower >= 14) {
     targetRank = Math.max(targetRank, avgPower >= 13 ? 4 : 3);
   } else if (maxPower >= 7) {
-    // CR 7+ (Mind Flayer, Venom Troll -> powerLevel 7..14) => at least Uncommon (2), never Common!
     targetRank = Math.max(targetRank, 2);
   }
 
@@ -421,6 +434,10 @@ function computeRarityAndDc(
 
   if (reagents.length >= 3 && compatibilityNoul >= 0.6) {
     targetRank = Math.min(6, targetRank + 1);
+  }
+
+  if (maxGen >= 2 && craftedCount >= 1) {
+    targetRank = Math.min(6, Math.max(targetRank, maxRank + 1));
   }
 
   const rankToRarity: Record<number, Rarity> = {
@@ -892,18 +909,28 @@ export function assembleCraftedItem(
         }».`
       : undefined;
 
+  const craftedParents = sorted.filter((r) => r.kind === 'crafted');
+  const craftGeneration =
+    craftedParents.length > 0
+      ? Math.max(...craftedParents.map((p) => p.craftGeneration ?? 1)) + 1
+      : 1;
+  const parentItemNames =
+    craftedParents.length > 0 ? sorted.map((r) => r.name) : undefined;
+
   const monsterSources = Array.from(
     new Set(sorted.map((r) => r.monsterName).filter(Boolean))
   );
   const sourceText =
-    monsterSources.length > 0
-      ? `Выковано из трофеев: ${monsterSources.join(' и ')}.`
-      : `Создано в тигле из редких катализаторов.`;
+    craftGeneration >= 2
+      ? `Высший синтез Тир-${craftGeneration} (слияние: ${sorted.map((r) => r.name).join(' + ')}).`
+      : monsterSources.length > 0
+        ? `Выковано из трофеев: ${monsterSources.join(' и ')}.`
+        : `Создано в тигле из редких катализаторов.`;
 
   const stats: DndStatblock = {
     typeLine: `${arch.typeLabel}, ${RARITY_META[finalRarity].label.toLowerCase()}${
-      rarityRank >= 3 ? ' (требует настройки)' : ''
-    }`,
+      craftGeneration >= 2 ? ` [Синтез Тир-${craftGeneration}]` : ''
+    }${rarityRank >= 3 ? ' (требует настройки)' : ''}`,
     damageFormula,
     armorClassBonus,
     savingThrow: `СЛ ${saveDc}`,
@@ -911,8 +938,8 @@ export function assembleCraftedItem(
       station === 'artificer' && archKey !== 'scroll'
         ? `${rarityRank + 1} зарядов (восстанавливает 1d${Math.max(2, rarityRank)} на рассвете)`
         : archKey === 'scroll'
-        ? `1 заряд (одноразовый манускрипт)`
-        : undefined,
+          ? `1 заряд (одноразовый манускрипт)`
+          : undefined,
     requiresAttunement: rarityRank >= 3,
     mechanicalEffect: effect.mechanicText(rarityRank, saveDc, Math.max(1, magicBonus)),
     curseEffect,
@@ -936,20 +963,21 @@ export function assembleCraftedItem(
     Math.max(cap.min, Math.round(rawGoldSum * (1.1 + rarityRank * 0.25)))
   );
   const goldMultiplier =
-    rollOutcome === 'masterwork' ? 1.6 : rollOutcome === 'cursed' ? 0.65 : 1.0;
+    (rollOutcome === 'masterwork' ? 1.6 : rollOutcome === 'cursed' ? 0.65 : 1.0) *
+    (craftGeneration >= 2 ? 1.25 : 1.0);
 
-  const itemId = `crafted_${deterministicHash(recipeKey + '_' + rollOutcome).toString(36)}`;
+  const itemId = `crafted_${deterministicHash(recipeKey + '_' + rollOutcome + '_gen' + craftGeneration).toString(36)}`;
 
   return {
     id: itemId,
-    name: nameRu,
+    name: craftGeneration >= 2 ? `⚛️ ${nameRu}` : nameRu,
     nameEn,
     kind: 'crafted',
     rarity: finalRarity,
     icon: arch.icon,
     material: 'artifact_core',
     elements,
-    powerLevel: Math.min(20, Math.round(rarityRank * 3.2)),
+    powerLevel: Math.min(20, Math.round(rarityRank * 3.2 + (craftGeneration - 1) * 2)),
     goldValue: Math.round(clampedBaseGold * goldMultiplier),
     description: `${stats.typeLine}. ${stats.mechanicalEffect}`,
     station,
@@ -958,5 +986,158 @@ export function assembleCraftedItem(
     stats,
     isMasterwork: rollOutcome === 'masterwork',
     isCursed: rollOutcome === 'cursed',
+    craftGeneration,
+    parentItemNames,
   };
+}
+
+/**
+ * Evaluates a merchant haggling attempt via TypeSafe AI Jev (`client.systemOne`)
+ * with deterministic NAR fallback.
+ */
+export async function evaluateMerchantHaggleWithJev(
+  params: {
+    merchantId: string;
+    merchantName: string;
+    merchantSpecialty: string;
+    item: GameItem;
+    baseOfferGold: number;
+    demandedGold: number;
+    markupPercent: number;
+    socialSkill: 'persuasion' | 'deception' | 'intimidation';
+    d20Total: number;
+    dc: number;
+  },
+  options: { useLiveApi: boolean; apiKey?: string }
+): Promise<JevHaggleTelemetry> {
+  const passedRoll = params.d20Total >= params.dc;
+  const margin = params.d20Total - params.dc;
+
+  // Deterministic NAR baseline
+  const rawAcceptProb = Math.min(
+    0.97,
+    Math.max(
+      0.05,
+      (passedRoll ? 0.72 : 0.22) +
+        margin * 0.045 -
+        (params.markupPercent - 25) * 0.004
+    )
+  );
+  const simMood = Math.min(5, Math.max(1, Math.round(3 + margin * 0.25)));
+  const simChoice: JevHaggleTelemetry['counterReaction']['choice'] =
+    rawAcceptProb >= 0.75
+      ? 'accept_gladly'
+      : rawAcceptProb >= 0.5
+        ? 'grudging_deal'
+        : rawAcceptProb >= 0.28
+          ? 'counter_offer'
+          : 'insulted_refusal';
+
+  const computeFinalGold = (
+    reaction: JevHaggleTelemetry['counterReaction']['choice']
+  ) => {
+    if (reaction === 'accept_gladly' || reaction === 'grudging_deal') {
+      return params.demandedGold;
+    }
+    if (reaction === 'counter_offer') {
+      return Math.round((params.baseOfferGold + params.demandedGold) * 0.5);
+    }
+    return Math.max(10, Math.round(params.baseOfferGold * 0.8));
+  };
+
+  const fallback: JevHaggleTelemetry = {
+    source: 'nar-calibrated-sim',
+    latencyMs: 74,
+    willAccept: { noul: Number(rawAcceptProb.toFixed(3)) },
+    merchantMood: { score: simMood },
+    counterReaction: {
+      choice: simChoice,
+      probabilities: {
+        accept_gladly: Number((rawAcceptProb * 0.55).toFixed(2)),
+        grudging_deal: Number((rawAcceptProb * 0.45).toFixed(2)),
+        counter_offer: Number(((1 - rawAcceptProb) * 0.65).toFixed(2)),
+        insulted_refusal: Number(((1 - rawAcceptProb) * 0.35).toFixed(2)),
+      },
+    },
+    finalPriceGold: computeFinalGold(simChoice),
+  };
+
+  if (!options.useLiveApi) {
+    return fallback;
+  }
+
+  try {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (options.apiKey) {
+      headers['x-typesafe-api-key'] = options.apiKey;
+    }
+
+    const res = await fetch('/api/jev/haggle', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        state: {
+          merchant: {
+            name: params.merchantName,
+            specialty: params.merchantSpecialty,
+          },
+          item: {
+            name: params.item.nameEn,
+            rarity: params.item.rarity,
+            elements: params.item.elements,
+            isCursed: Boolean(params.item.isCursed),
+            isMasterwork: Boolean(params.item.isMasterwork),
+          },
+          negotiation: {
+            baseOfferGold: params.baseOfferGold,
+            demandedGold: params.demandedGold,
+            markupPercent: `${params.markupPercent}%`,
+            socialApproach: params.socialSkill,
+            charismaRollTotal: params.d20Total,
+            difficultyClassDC: params.dc,
+            checkSucceeded: passedRoll,
+          },
+        },
+      }),
+    });
+
+    if (!res.ok) return fallback;
+    const data = await res.json();
+    const ans = data.answers;
+    if (!ans) return fallback;
+
+    const choiceVal = (ans.counterReaction?.choice ||
+      fallback.counterReaction.choice) as JevHaggleTelemetry['counterReaction']['choice'];
+
+    // Ensure if player rolled way above DC, merchant doesn't refuse
+    const resolvedReaction: JevHaggleTelemetry['counterReaction']['choice'] =
+      passedRoll && (choiceVal === 'insulted_refusal' || choiceVal === 'counter_offer')
+        ? margin >= 5
+          ? 'accept_gladly'
+          : 'grudging_deal'
+        : !passedRoll && (choiceVal === 'accept_gladly' || choiceVal === 'grudging_deal')
+          ? margin <= -5
+            ? 'insulted_refusal'
+            : 'counter_offer'
+          : choiceVal;
+
+    return {
+      source: 'live-jev',
+      latencyMs: data.latencyMs || 180,
+      willAccept: {
+        noul: Number((ans.willAccept?.noul ?? fallback.willAccept.noul).toFixed(3)),
+      },
+      merchantMood: {
+        score: ans.merchantMood?.score ?? fallback.merchantMood.score,
+      },
+      counterReaction: {
+        choice: resolvedReaction,
+        probabilities:
+          ans.counterReaction?.probabilities || fallback.counterReaction.probabilities,
+      },
+      finalPriceGold: computeFinalGold(resolvedReaction),
+    };
+  } catch {
+    return fallback;
+  }
 }
