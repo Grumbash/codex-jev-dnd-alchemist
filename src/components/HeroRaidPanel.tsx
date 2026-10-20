@@ -108,9 +108,11 @@ interface HeroRaidPanelProps {
   loadout: HeroLoadout;
   monsters: Monster[];
   activeHeroId?: PartyHeroProfile['id'];
+  activeBuffs?: import('../types/game').ActivePartyBuff[];
   onSelectHero?: (heroId: PartyHeroProfile['id']) => void;
   onEquipSlot: (slot: HeroSlotType, itemId: string | undefined) => void;
   onInspectItem: (item: GameItem) => void;
+  onBattleFinished?: (heroId: PartyHeroProfile['id']) => void;
   onCompleteRaid: (result: {
     victory: boolean;
     monster: Monster;
@@ -130,9 +132,11 @@ export const HeroRaidPanel: React.FC<HeroRaidPanelProps> = ({
   loadout,
   monsters,
   activeHeroId = 'quick',
+  activeBuffs = [],
   onSelectHero,
   onEquipSlot,
   onInspectItem,
+  onBattleFinished,
   onCompleteRaid,
 }) => {
   const [selectedMonsterId, setSelectedMonsterId] = useState<string>(monsters[0]?.id || 'chuul_water_passage');
@@ -207,6 +211,16 @@ export const HeroRaidPanel: React.FC<HeroRaidPanelProps> = ({
       }
     });
 
+    // Apply Active Party Buffs & Mutations
+    const heroBuffs = activeBuffs.filter((b) => b.heroId === activeHeroId);
+    heroBuffs.forEach((buff) => {
+      buff.elements.forEach((e) => elements.add(e));
+      if (buff.statBonus?.tempHp) maxHp += buff.statBonus.tempHp;
+      if (buff.statBonus?.armorClassBonus) ac += buff.statBonus.armorClassBonus;
+      if (buff.statBonus?.attackBonus) attackBonus += buff.statBonus.attackBonus;
+      if (buff.statBonus?.bonusDamagePerRound) avgDamage += buff.statBonus.bonusDamagePerRound;
+    });
+
     return {
       maxHp,
       ac: Math.min(28, ac),
@@ -215,7 +229,7 @@ export const HeroRaidPanel: React.FC<HeroRaidPanelProps> = ({
       elements: Array.from(elements),
       effects: Array.from(effects),
     };
-  }, [equippedItems, activeHero, alchemistLevel, proficiencyBonus]);
+  }, [equippedItems, activeHero, alchemistLevel, proficiencyBonus, activeBuffs, activeHeroId]);
 
   const selectedMonster = useMemo(
     () => monsters.find((m) => m.id === selectedMonsterId) || monsters[0],
@@ -248,11 +262,24 @@ export const HeroRaidPanel: React.FC<HeroRaidPanelProps> = ({
     const monsterBaseDmg = Math.round(8 + selectedMonster.cr * 1.8);
     let potionUsed = false;
 
+    const currentHeroBuffs = activeBuffs.filter((b) => b.heroId === activeHeroId);
+
     logs.push({
       round: 0,
       actor: 'system',
       text: `⚔️ ${activeHero.name} (${activeHero.raceClass} • HP ${heroHp}, КД ${heroStats.ac}, Атака +${heroStats.attackBonus}) вступает в бой против: ${selectedMonster.name} (HP ${monsterMaxHp}, КД ${monsterAc})!`,
     });
+
+    if (currentHeroBuffs.length > 0) {
+      logs.push({
+        round: 0,
+        actor: 'hero',
+        text: `✨ Мутации и зелья в действии: ${currentHeroBuffs
+          .map((b) => `${b.iconEmoji} ${b.title}`)
+          .join(' • ')}`,
+        highlight: 'effect',
+      });
+    }
 
     for (let round = 1; round <= 6; round++) {
       if (heroHp <= 0 || monsterHp <= 0) break;
@@ -409,20 +436,24 @@ export const HeroRaidPanel: React.FC<HeroRaidPanelProps> = ({
       xpEarned: xp,
       staminaSpent: 2,
     });
+
+    if (onBattleFinished) {
+      onBattleFinished(activeHeroId);
+    }
   };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
       {/* LEFT: HERO PAPER-DOLL & D&D 5E COMBAT STATBLOCK */}
-      <div className="lg:col-span-6 rounded-2xl bg-stone-900/70 border border-stone-800 p-5 space-y-4">
+      <div className="lg:col-span-6 rounded-2xl bg-[#101b22] border border-[#c9aa72]/25 shadow-xl p-5 space-y-4">
         {/* Party Character Switcher: Квик, Нокта, Слоу */}
         <div className="space-y-2">
-          <div className="text-[11px] font-mono uppercase tracking-wider text-sky-400 flex items-center justify-between">
-            <span className="flex items-center gap-1.5">
+          <div className="text-[11px] font-mono uppercase tracking-wider text-[#d0ad77] flex items-center justify-between">
+            <span className="flex items-center gap-1.5 font-semibold">
               <UserCheck className="w-3.5 h-3.5" />
               <span>Персонажи Кампании «Монстры» (Листы Foundry VTT)</span>
             </span>
-            <span className="text-amber-300/90">Логово: Дальний Камень</span>
+            <span className="text-[#e5cb94]">Бастион: Дальний Камень</span>
           </div>
 
           <div className="grid grid-cols-3 gap-2">
@@ -504,6 +535,39 @@ export const HeroRaidPanel: React.FC<HeroRaidPanelProps> = ({
             </div>
           </div>
         </div>
+
+        {/* Active Party Buffs & Mutations for this Hero */}
+        {activeBuffs.filter((b) => b.heroId === activeHeroId).length > 0 && (
+          <div className="p-3 rounded-xl bg-gradient-to-r from-[#14232a] to-[#0c161d] border border-[#d0ad77]/40 space-y-2">
+            <div className="flex items-center justify-between text-[11px] font-mono text-[#d0ad77]">
+              <span className="flex items-center gap-1.5 font-bold">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Активные мутации и эликсиры ({activeHero.name}):</span>
+              </span>
+            </div>
+            <div className="space-y-1.5">
+              {activeBuffs
+                .filter((b) => b.heroId === activeHeroId)
+                .map((buff) => (
+                  <div
+                    key={buff.id}
+                    className="p-2 rounded-lg bg-[#081015] border border-[#2b4150] flex items-center justify-between gap-2 text-xs"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">{buff.iconEmoji}</span>
+                      <div>
+                        <div className="font-semibold text-[#f0ece3]">{buff.title}</div>
+                        <div className="text-[11px] text-[#93a6b0]">{buff.description}</div>
+                      </div>
+                    </div>
+                    <span className="px-2 py-0.5 rounded bg-[#162732] border border-[#3b596d] font-mono text-[10px] text-[#e5cb94] shrink-0">
+                      ⏳ {buff.durationFights} б.
+                    </span>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
 
         {/* 6 Equipment Slots Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -622,7 +686,7 @@ export const HeroRaidPanel: React.FC<HeroRaidPanelProps> = ({
       </div>
 
       {/* RIGHT: DUNGEON RAID COMBAT SIMULATOR */}
-      <div className="lg:col-span-6 rounded-2xl bg-stone-900/70 border border-stone-800 p-5 flex flex-col justify-between space-y-4">
+      <div className="lg:col-span-6 rounded-2xl bg-[#101b22] border border-[#c9aa72]/25 shadow-xl p-5 flex flex-col justify-between space-y-4">
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>

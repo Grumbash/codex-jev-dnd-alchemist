@@ -181,3 +181,44 @@ export interface WorkshopUpgrade {
   purchased: boolean;
   effectKey: 'crucible_3_slots' | 'dc_reduction_2' | 'salvage_on_fail' | 'harvest_bonus_2' | 'max_stamina_14';
 }
+
+export interface ActivePartyBuff {
+  id: string;
+  heroId: 'quick' | 'nocta' | 'slow';
+  sourceItemId: string;
+  sourceItemName: string;
+  sourceItemArchetype?: string;
+  elements: ElementType[];
+  rarity: Rarity;
+  title: string;
+  description: string;
+  durationFights: number; // remaining fights or encounters
+  appliedAtDay: number;
+  iconEmoji: string;
+  statBonus?: {
+    attackBonus?: number;
+    armorClassBonus?: number;
+    bonusDamagePerRound?: number;
+    tempHp?: number;
+    harvestBonus?: number;
+  };
+}
+
+export interface DailyLairEvent {
+  id: string;
+  day: number;
+  title: string;
+  badge: string;
+  flavor: string;
+  effectDescription: string;
+  iconEmoji: string;
+  modifierType:
+    | 'discount_catalysts'
+    | 'free_reagent'
+    | 'dc_reduction'
+    | 'extra_xp'
+    | 'hero_temp_hp'
+    | 'bonus_bounty_gold';
+  bonusItemId?: string;
+  bonusValue?: number;
+}

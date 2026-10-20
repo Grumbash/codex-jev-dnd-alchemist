@@ -185,7 +185,7 @@ export const DmMasterModal: React.FC<DmMasterModalProps> = ({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-4xl rounded-2xl border border-amber-500/50 bg-[#120f1a] p-5 sm:p-6 shadow-2xl space-y-5 max-h-[92vh] overflow-y-auto"
+        className="w-full max-w-4xl rounded-2xl border border-[#c9aa72]/40 bg-[#0e171e] text-[#f0ece3] p-5 sm:p-6 shadow-2xl space-y-5 max-h-[92vh] overflow-y-auto"
       >
         {/* Header */}
         <div className="flex items-start justify-between gap-4 border-b border-stone-800 pb-4">

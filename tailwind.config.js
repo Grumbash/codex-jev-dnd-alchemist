@@ -7,8 +7,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        display: ['Cinzel', 'serif'],
-        sans: ['Inter', 'sans-serif'],
+        display: ['Cinzel', 'Georgia', 'serif'],
+        sans: ['Signika', 'Inter', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace'],
       },
       keyframes: {

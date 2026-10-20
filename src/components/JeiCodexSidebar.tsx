@@ -113,31 +113,31 @@ export const JeiCodexSidebar: React.FC<JeiCodexSidebarProps> = ({
   }, [recipeList, selectedItem]);
 
   return (
-    <aside className="flex flex-col h-full rounded-2xl border border-stone-800/90 bg-[#110f17]/95 shadow-2xl overflow-hidden">
-      {/* Top Header */}
-      <div className="p-3.5 border-b border-stone-800/80 bg-gradient-to-r from-amber-950/30 via-stone-900/60 to-purple-950/30">
+    <aside className="flex flex-col h-full rounded-2xl border border-[#c9aa72]/30 bg-[#0e1820] shadow-2xl overflow-hidden">
+      {/* Top Header — Фолиант Гримуара */}
+      <div className="p-3.5 border-b border-[#c9aa72]/25 bg-gradient-to-r from-[#14232c] to-[#0c151c]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <BookOpen className="w-4 h-4 text-amber-400" />
-            <h2 className="font-display font-bold text-sm tracking-wide text-amber-200">
-              JEI Гримуар Знаний
+            <BookOpen className="w-4 h-4 text-[#d0ad77]" />
+            <h2 className="font-display font-bold text-sm tracking-wide text-[#f0ece3]">
+              Гримуар Знаний
             </h2>
           </div>
-          <span className="text-[11px] font-mono text-stone-400">
+          <span className="text-[11px] font-mono text-[#8ca0ab]">
             Открыто:{' '}
-            <strong className="text-amber-300">{discoveredSet.size}</strong> / {allItems.length}
+            <strong className="text-[#e5cb94]">{discoveredSet.size}</strong> / {allItems.length}
           </span>
         </div>
 
         {/* Search Input */}
         <div className="mt-2.5 relative">
-          <Search className="w-3.5 h-3.5 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-3.5 h-3.5 text-[#8ca0ab] absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Поиск предмета, монстра, стихии..."
-            className="w-full pl-8 pr-3 py-1.5 rounded-lg bg-stone-950/90 border border-stone-800 text-xs text-stone-100 placeholder:text-stone-500 focus:outline-none focus:border-amber-500/60"
+            placeholder="Поиск по фолианту, бестиям, стихиям..."
+            className="w-full pl-8 pr-3 py-1.5 rounded-lg bg-[#081015] border border-[#233845] text-xs text-[#f0ece3] placeholder:text-[#657a87] focus:outline-none focus:border-[#d0ad77]/60"
           />
         </div>
 
@@ -152,10 +152,10 @@ export const JeiCodexSidebar: React.FC<JeiCodexSidebarProps> = ({
             <button
               key={tab.id}
               onClick={() => setKindFilter(tab.id as any)}
-              className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors whitespace-nowrap ${
+              className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors whitespace-nowrap cursor-pointer ${
                 kindFilter === tab.id
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                  : 'bg-stone-900/80 text-stone-400 border border-stone-800 hover:text-stone-200'
+                  ? 'bg-[#1a2d39] text-[#e5cb94] border border-[#c9aa72]/40 font-bold'
+                  : 'bg-[#0a1217] text-[#8ca0ab] border border-[#1e303c] hover:text-[#f0ece3]'
               }`}
             >
               {tab.label}
@@ -166,18 +166,18 @@ export const JeiCodexSidebar: React.FC<JeiCodexSidebarProps> = ({
 
       {/* Selected Item JEI Inspector (R / U Tabs) */}
       {selectedItem ? (
-        <div className="p-3.5 border-b border-stone-800 bg-[#161320]/95 space-y-3">
+        <div className="p-3.5 border-b border-[#c9aa72]/20 bg-[#121f28] space-y-3">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2.5 min-w-0">
               <div
-                className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border ${
-                  RARITY_META[selectedItem.rarity].bg
-                } ${RARITY_META[selectedItem.rarity].border}`}
+                className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border bg-[#091217] ${
+                  RARITY_META[selectedItem.rarity].border
+                }`}
               >
                 {isSelectedDiscovered ? (
                   <CompositeItemSprite item={selectedItem} size="md" />
                 ) : (
-                  <span className="font-mono font-bold text-stone-500 text-lg">?</span>
+                  <span className="font-mono font-bold text-[#5c707d] text-lg">?</span>
                 )}
               </div>
               <div className="min-w-0">
@@ -192,12 +192,12 @@ export const JeiCodexSidebar: React.FC<JeiCodexSidebarProps> = ({
                     {RARITY_META[selectedItem.rarity].label}
                   </span>
                   {(inventory[selectedItem.id] || 0) > 0 && (
-                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-stone-800 text-stone-200">
-                      В сумке: x{inventory[selectedItem.id]}
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#0b141a] border border-[#213543] text-[#e5cb94]">
+                      В сумке: ×{inventory[selectedItem.id]}
                     </span>
                   )}
                 </div>
-                <h3 className="font-semibold text-xs text-stone-100 mt-1 truncate">
+                <h3 className="font-semibold text-xs text-[#f0ece3] mt-1 truncate">
                   {isSelectedDiscovered ? selectedItem.name : 'Неизученный реагент (???)'}
                 </h3>
               </div>
@@ -208,17 +208,17 @@ export const JeiCodexSidebar: React.FC<JeiCodexSidebarProps> = ({
                 {(inventory[selectedItem.id] || 0) > 0 && (
                   <button
                     onClick={() => onAddReagentToCrucible(selectedItem.id)}
-                    title="Положить в котел"
-                    className="px-2 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-[11px] font-medium flex items-center gap-1"
+                    title="Положить в чашу горнила"
+                    className="px-2 py-1 rounded-lg bg-[#1c2e39] hover:bg-[#253e4d] border border-[#c9aa72]/40 text-[#e5cb94] text-[11px] font-medium flex items-center gap-1 cursor-pointer"
                   >
-                    <Plus className="w-3 h-3" /> В котел
+                    <Plus className="w-3 h-3" /> В чашу
                   </button>
                 )}
                 {selectedItem.kind === 'crafted' && (
                   <button
                     onClick={() => onInspectStatblock(selectedItem)}
                     title="Открыть D&D Статблок"
-                    className="p-1.5 rounded-lg bg-stone-800 hover:bg-stone-700 text-amber-300 border border-stone-700"
+                    className="p-1.5 rounded-lg bg-[#1c2e39] hover:bg-[#253e4d] text-[#e5cb94] border border-[#c9aa72]/30 cursor-pointer"
                   >
                     <Eye className="w-3.5 h-3.5" />
                   </button>
@@ -241,34 +241,34 @@ export const JeiCodexSidebar: React.FC<JeiCodexSidebarProps> = ({
                   </span>
                 );
               })}
-              <span className="px-2 py-0.5 rounded text-[10px] bg-stone-900 border border-stone-800 text-amber-300 font-mono">
+              <span className="px-2 py-0.5 rounded text-[10px] bg-[#091117] border border-[#213543] text-[#e5cb94] font-mono">
                 {selectedItem.goldValue} gp
               </span>
             </div>
           )}
 
           {/* JEI Mode Switcher: [R] Как получить vs [U] Где используется */}
-          <div className="grid grid-cols-2 gap-1.5 p-1 rounded-lg bg-stone-950 border border-stone-800">
+          <div className="grid grid-cols-2 gap-1.5 p-1 rounded-lg bg-[#091117] border border-[#213543]">
             <button
               onClick={() => onSelectJeiItem(selectedItem.id, 'recipe')}
-              className={`py-1 px-2 rounded text-[11px] font-mono font-medium transition-colors flex items-center justify-center gap-1.5 ${
+              className={`py-1 px-2 rounded text-[11px] font-mono font-medium transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
                 jeiTab === 'recipe'
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                  : 'text-stone-400 hover:text-stone-200'
+                  ? 'bg-[#182934] text-[#e5cb94] border border-[#c9aa72]/40 font-bold'
+                  : 'text-[#8ca0ab] hover:text-[#f0ece3]'
               }`}
             >
-              <span className="px-1 rounded bg-stone-800 text-[9px] text-amber-400">R</span>
+              <span className="px-1 rounded bg-[#0b151b] text-[9px] text-[#d0ad77]">R</span>
               Источник / Рецепт
             </button>
             <button
               onClick={() => onSelectJeiItem(selectedItem.id, 'uses')}
-              className={`py-1 px-2 rounded text-[11px] font-mono font-medium transition-colors flex items-center justify-center gap-1.5 ${
+              className={`py-1 px-2 rounded text-[11px] font-mono font-medium transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
                 jeiTab === 'uses'
-                  ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
-                  : 'text-stone-400 hover:text-stone-200'
+                  ? 'bg-[#182934] text-purple-300 border border-purple-500/40 font-bold'
+                  : 'text-[#8ca0ab] hover:text-[#f0ece3]'
               }`}
             >
-              <span className="px-1 rounded bg-stone-800 text-[9px] text-purple-400">U</span>
+              <span className="px-1 rounded bg-[#0b151b] text-[9px] text-purple-400">U</span>
               Применение ({usageRecipes.length})
             </button>
           </div>
@@ -278,18 +278,18 @@ export const JeiCodexSidebar: React.FC<JeiCodexSidebarProps> = ({
             <div className="space-y-2 text-xs">
               {/* Monster Drop Source */}
               {selectedItem.monsterId && (
-                <div className="rounded-lg bg-stone-900/90 border border-stone-800 p-2.5 flex items-center justify-between gap-2">
+                <div className="rounded-lg bg-[#0c161d] border border-[#213543] p-2.5 flex items-center justify-between gap-2">
                   <div>
-                    <div className="text-[10px] font-mono uppercase text-stone-400">
-                      Дроп с монстра (Harvest СЛ {selectedItem.harvestDc})
+                    <div className="text-[10px] font-mono uppercase text-[#8ca0ab]">
+                      Трофей монстра (Разделка СЛ {selectedItem.harvestDc})
                     </div>
-                    <div className="font-medium text-stone-200 mt-0.5">
+                    <div className="font-medium text-[#f0ece3] mt-0.5">
                       {selectedItem.monsterName}
                     </div>
                   </div>
                   <button
                     onClick={() => onJumpToMonster(selectedItem.monsterId!)}
-                    className="px-2.5 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-[11px] font-medium flex items-center gap-1 shrink-0"
+                    className="px-2.5 py-1.5 rounded-lg bg-emerald-950/60 hover:bg-emerald-900/60 border border-emerald-500/40 text-emerald-300 text-[11px] font-medium flex items-center gap-1 shrink-0 cursor-pointer"
                   >
                     <Compass className="w-3.5 h-3.5" /> На охоту
                   </button>
@@ -298,18 +298,18 @@ export const JeiCodexSidebar: React.FC<JeiCodexSidebarProps> = ({
 
               {/* Catalyst Shop Source */}
               {selectedItem.kind === 'catalyst' && (
-                <div className="rounded-lg bg-stone-900/90 border border-stone-800 p-2.5 flex items-center justify-between gap-2">
+                <div className="rounded-lg bg-[#0c161d] border border-[#213543] p-2.5 flex items-center justify-between gap-2">
                   <div>
-                    <div className="text-[10px] font-mono uppercase text-stone-400">
-                      Лавка Алхимика
+                    <div className="text-[10px] font-mono uppercase text-[#8ca0ab]">
+                      Лавка Ремесленника
                     </div>
-                    <div className="text-stone-200 text-xs mt-0.5">
+                    <div className="text-[#f0ece3] text-xs mt-0.5">
                       Базовый катализатор ({selectedItem.goldValue} gp)
                     </div>
                   </div>
                   <button
                     onClick={() => onBuyCatalyst(selectedItem.id)}
-                    className="px-2.5 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-[11px] font-medium flex items-center gap-1"
+                    className="px-2.5 py-1.5 rounded-lg bg-[#1a2c38] hover:bg-[#233a4a] border border-[#c9aa72]/40 text-[#e5cb94] text-[11px] font-medium flex items-center gap-1 cursor-pointer"
                   >
                     <ShoppingBag className="w-3.5 h-3.5" /> Купить ({selectedItem.goldValue} gp)
                   </button>
@@ -319,7 +319,7 @@ export const JeiCodexSidebar: React.FC<JeiCodexSidebarProps> = ({
               {/* Crafting Recipes that produce this item */}
               {producingRecipes.length > 0 && (
                 <div className="space-y-1.5">
-                  <div className="text-[10px] font-mono uppercase text-stone-400">
+                  <div className="text-[10px] font-mono uppercase text-[#8ca0ab]">
                     Открытые формулы синтеза:
                   </div>
                   {producingRecipes.map((rec) => {
@@ -330,12 +330,12 @@ export const JeiCodexSidebar: React.FC<JeiCodexSidebarProps> = ({
                     return (
                       <div
                         key={rec.key}
-                        className="rounded-lg bg-stone-900/90 border border-stone-800 p-2 flex items-center justify-between gap-2"
+                        className="rounded-lg bg-[#0c161d] border border-[#213543] p-2 flex items-center justify-between gap-2"
                       >
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span
                             title={st.name}
-                            className="px-1.5 py-0.5 rounded bg-stone-800 text-[10px] font-mono text-amber-300"
+                            className="px-1.5 py-0.5 rounded bg-[#15242f] text-[10px] font-mono text-[#d0ad77]"
                           >
                             {st.name}
                           </span>
@@ -344,13 +344,13 @@ export const JeiCodexSidebar: React.FC<JeiCodexSidebarProps> = ({
                             if (!ing) return null;
                             return (
                               <React.Fragment key={ingId + idx}>
-                                {idx > 0 && <span className="text-stone-500">+</span>}
+                                {idx > 0 && <span className="text-[#5c707d]">+</span>}
                                 <button
                                   onClick={() => onSelectJeiItem(ing.id, 'recipe')}
-                                  className="px-1.5 py-0.5 rounded bg-stone-950 border border-stone-700 hover:border-amber-500/50 text-[11px] flex items-center gap-1"
+                                  className="px-1.5 py-0.5 rounded bg-[#091117] border border-[#213543] hover:border-[#d0ad77]/50 text-[11px] flex items-center gap-1 cursor-pointer"
                                 >
                                   <CompositeItemSprite item={ing} size="sm" className="w-4 h-4" />
-                                  <span className="truncate max-w-[95px]">{ing.name}</span>
+                                  <span className="truncate max-w-[95px] text-[#f0ece3]">{ing.name}</span>
                                 </button>
                               </React.Fragment>
                             );
@@ -363,16 +363,16 @@ export const JeiCodexSidebar: React.FC<JeiCodexSidebarProps> = ({
                           disabled={!canCraftAll}
                           title={
                             canCraftAll
-                              ? 'Загрузить ингредиенты в котел'
-                              : 'Не хватает ингредиентов в инвентаре'
+                              ? 'Загрузить ингредиенты в чашу'
+                              : 'Не хватает ингредиентов в сумке'
                           }
-                          className={`px-2 py-1 rounded text-[10px] font-mono font-semibold shrink-0 ${
+                          className={`px-2 py-1 rounded text-[10px] font-mono font-semibold shrink-0 cursor-pointer ${
                             canCraftAll
-                              ? 'bg-amber-500/25 hover:bg-amber-500/35 text-amber-200 border border-amber-500/40'
-                              : 'bg-stone-800/60 text-stone-500 border border-stone-800 cursor-not-allowed'
+                              ? 'bg-[#1c2e39] hover:bg-[#253e4d] text-[#e5cb94] border border-[#c9aa72]/40'
+                              : 'bg-[#101920] text-[#556976] border border-[#1b2b36] cursor-not-allowed'
                           }`}
                         >
-                          + На стол
+                          + В чашу
                         </button>
                       </div>
                     );
@@ -383,7 +383,7 @@ export const JeiCodexSidebar: React.FC<JeiCodexSidebarProps> = ({
               {!selectedItem.monsterId &&
                 selectedItem.kind !== 'catalyst' &&
                 producingRecipes.length === 0 && (
-                  <div className="text-stone-400 text-[11px] italic">
+                  <div className="text-[#8ca0ab] text-[11px] italic">
                     Побочный продукт нестабильной алхимической реакции.
                   </div>
                 )}
@@ -398,10 +398,10 @@ export const JeiCodexSidebar: React.FC<JeiCodexSidebarProps> = ({
                   return (
                     <div
                       key={rec.key}
-                      className="rounded-lg bg-stone-900/90 border border-stone-800 p-2 flex items-center justify-between gap-1.5"
+                      className="rounded-lg bg-[#0c161d] border border-[#213543] p-2 flex items-center justify-between gap-1.5"
                     >
                       <div className="flex items-center gap-1 flex-wrap min-w-0">
-                        <span className="text-[10px] font-mono text-stone-400" title={st.name}>
+                        <span className="text-[10px] font-mono text-[#8ca0ab]" title={st.name}>
                           [{st.name.slice(0, 3)}]
                         </span>
                         {rec.ingredientIds.map((id, i) => {
@@ -409,13 +409,13 @@ export const JeiCodexSidebar: React.FC<JeiCodexSidebarProps> = ({
                           if (!it) return null;
                           return (
                             <React.Fragment key={id + i}>
-                              {i > 0 && <span className="text-stone-500">+</span>}
+                              {i > 0 && <span className="text-[#5c707d]">+</span>}
                               <button
                                 onClick={() => onSelectJeiItem(id, 'recipe')}
-                                className={`p-0.5 rounded border ${
+                                className={`p-0.5 rounded border cursor-pointer ${
                                   id === selectedItem.id
-                                    ? 'bg-amber-500/15 border-amber-500/40'
-                                    : 'bg-stone-950 border-stone-800'
+                                    ? 'bg-[#1a2d39] border-[#d0ad77]'
+                                    : 'bg-[#091117] border-[#213543]'
                                 }`}
                               >
                                 <CompositeItemSprite item={it} size="sm" className="w-5 h-5" />
@@ -423,10 +423,10 @@ export const JeiCodexSidebar: React.FC<JeiCodexSidebarProps> = ({
                             </React.Fragment>
                           );
                         })}
-                        <ArrowRight className="w-3 h-3 text-stone-500 mx-0.5" />
+                        <ArrowRight className="w-3 h-3 text-[#5c707d] mx-0.5" />
                         <button
                           onClick={() => onSelectJeiItem(resItem.id, 'recipe')}
-                          className={`px-2 py-0.5 rounded text-[11px] font-medium border flex items-center gap-1 truncate max-w-[155px] ${
+                          className={`px-2 py-0.5 rounded text-[11px] font-medium border flex items-center gap-1 truncate max-w-[155px] cursor-pointer ${
                             RARITY_META[resItem.rarity].bg
                           } ${RARITY_META[resItem.rarity].border} ${
                             RARITY_META[resItem.rarity].text
@@ -440,10 +440,10 @@ export const JeiCodexSidebar: React.FC<JeiCodexSidebarProps> = ({
                   );
                 })
               ) : (
-                <div className="rounded-lg bg-stone-900/60 border border-stone-800/80 p-2.5 text-[11px] text-stone-400 flex items-center gap-2">
+                <div className="rounded-lg bg-[#0c161d] border border-[#213543] p-2.5 text-[11px] text-[#8ca0ab] flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-purple-400 shrink-0" />
                   <span>
-                    Вы ещё не открыли рецепты с этим компонентом. Положите его в котел и проверьте синергию через Jev!
+                    Вы ещё не открыли рецепты с этим компонентом. Положите его в чашу и рассчитайте синергию через Jev!
                   </span>
                 </div>
               )}
@@ -451,10 +451,10 @@ export const JeiCodexSidebar: React.FC<JeiCodexSidebarProps> = ({
           )}
         </div>
       ) : (
-        <div className="p-3 border-b border-stone-800/80 bg-stone-950/60 text-[11px] text-stone-400 flex items-center gap-2">
-          <Filter className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+        <div className="p-3 border-b border-[#c9aa72]/20 bg-[#091217] text-[11px] text-[#8ca0ab] flex items-center gap-2">
+          <Filter className="w-3.5 h-3.5 text-[#d0ad77] shrink-0" />
           <span>
-            Кликните по любому предмету ниже, чтобы посмотреть его источник дропа [R] или рецепты крафта [U].
+            Кликните по любому предмету в сетке, чтобы узнать источник получения [R] или рецепты применения [U].
           </span>
         </div>
       )}
@@ -481,19 +481,19 @@ export const JeiCodexSidebar: React.FC<JeiCodexSidebarProps> = ({
                     ? `${item.name} (${rarity.label})\nЛКМ: Как получить [R] | ПКМ: Где используется [U]`
                     : `Неизученный трофей (${item.monsterName || 'Неизвестно'})`
                 }
-                className={`group relative aspect-square rounded-xl border p-1.5 flex flex-col items-center justify-center transition-all ${
+                className={`group relative aspect-square rounded-xl border p-1.5 flex flex-col items-center justify-center transition-all cursor-pointer ${
                   isKnown
-                    ? `${rarity.bg} ${rarity.border} hover:scale-105`
-                    : 'bg-stone-950/70 border-stone-800/70 opacity-55 hover:opacity-85'
-                } ${isSelected ? 'ring-2 ring-amber-400 scale-105 z-10' : ''}`}
+                    ? `bg-[#0c161d] ${rarity.border} hover:scale-105 hover:border-[#d0ad77]`
+                    : 'bg-[#091117]/80 border-[#1c2c36] opacity-55 hover:opacity-85'
+                } ${isSelected ? 'ring-2 ring-[#d0ad77] scale-105 z-10' : ''}`}
               >
                 {isKnown ? (
                   <CompositeItemSprite item={item} size="md" />
                 ) : (
-                  <span className="font-mono font-bold text-lg text-stone-600">?</span>
+                  <span className="font-mono font-bold text-lg text-[#556976]">?</span>
                 )}
 
-                <span className="mt-1 text-[9px] leading-tight text-stone-300 line-clamp-1 w-full text-center px-0.5">
+                <span className="mt-1 text-[9px] leading-tight text-[#c4d5dd] line-clamp-1 w-full text-center px-0.5">
                   {isKnown
                     ? item.name.replace('✨ Шедевральный ', '').replace('🩸 Проклятый ', '')
                     : '???'}
@@ -501,7 +501,7 @@ export const JeiCodexSidebar: React.FC<JeiCodexSidebarProps> = ({
 
                 {/* Inventory Count Badge */}
                 {count > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 px-1.5 py-0.2 rounded-full bg-amber-500 text-stone-950 font-mono font-bold text-[10px] shadow">
+                  <span className="absolute -top-1.5 -right-1.5 px-1.5 py-0.2 rounded-full bg-[#d0ad77] text-[#0c151c] font-mono font-bold text-[10px] shadow">
                     {count}
                   </span>
                 )}

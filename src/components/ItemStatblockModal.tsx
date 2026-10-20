@@ -27,6 +27,7 @@ interface ItemStatblockModalProps {
   onAddToCrucible?: (item: GameItem) => void;
   onEquipItem?: (item: GameItem) => void;
   onOpenHaggle?: (item: GameItem) => void;
+  onApplyBuff?: (item: GameItem, heroId: 'quick' | 'nocta' | 'slow') => void;
 }
 
 export const ItemStatblockModal: React.FC<ItemStatblockModalProps> = ({
@@ -37,6 +38,7 @@ export const ItemStatblockModal: React.FC<ItemStatblockModalProps> = ({
   onAddToCrucible,
   onEquipItem,
   onOpenHaggle,
+  onApplyBuff,
 }) => {
   const [copied, setCopied] = useState(false);
   const [yawDeg, setYawDeg] = useState(0);
@@ -308,7 +310,7 @@ export const ItemStatblockModal: React.FC<ItemStatblockModalProps> = ({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className={`relative w-full max-w-xl rounded-2xl border-2 p-6 bg-gradient-to-b from-[#1a1624] via-[#12101a] to-[#0d0b12] text-stone-100 shadow-2xl ${rarity.border} ${rarity.glow}`}
+        className={`relative w-full max-w-xl rounded-2xl border-2 p-6 bg-gradient-to-b from-[#162733] via-[#101b22] to-[#0a1217] text-[#f0ece3] shadow-2xl ${rarity.border} ${rarity.glow}`}
       >
         <button
           onClick={onClose}
@@ -510,11 +512,52 @@ export const ItemStatblockModal: React.FC<ItemStatblockModalProps> = ({
                 onClick={() => {
                   onOpenHaggle(item);
                 }}
-                className="px-3 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-xs font-medium text-emerald-200 flex items-center justify-center gap-1.5 transition-colors"
+                className="px-3 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-xs font-medium text-emerald-200 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
               >
                 <Handshake className="w-3.5 h-3.5 text-emerald-400" />
                 <span>Торг с NPC (Jev)</span>
               </button>
+            )}
+
+            {onApplyBuff && (
+              <div className="col-span-full flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-[#0b1319] border border-[#c9aa72]/30 mt-1">
+                <span className="text-xs font-semibold text-[#e5cb94] flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Применить эффект на героя (3 боя):</span>
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => {
+                      onApplyBuff(item, 'quick');
+                      onClose();
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-emerald-950/70 hover:bg-emerald-900 border border-emerald-500/40 text-emerald-200 text-xs font-medium flex items-center gap-1 cursor-pointer transition-colors"
+                    title="Скормить Квику (Мутация Обжоры: Временные HP + урон)"
+                  >
+                    <span>🍽️ Квик</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      onApplyBuff(item, 'nocta');
+                      onClose();
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-indigo-950/70 hover:bg-indigo-900 border border-indigo-500/40 text-indigo-200 text-xs font-medium flex items-center gap-1 cursor-pointer transition-colors"
+                    title="Настой для Нокты (Теневой настой: КД + разделка)"
+                  >
+                    <span>🥷 Нокта</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      onApplyBuff(item, 'slow');
+                      onClose();
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-amber-950/70 hover:bg-amber-900 border border-amber-500/40 text-amber-200 text-xs font-medium flex items-center gap-1 cursor-pointer transition-colors"
+                    title="Смазка клинка Слоу (Боевая закалка: Атака + урон)"
+                  >
+                    <span>⚔️ Слоу</span>
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         )}

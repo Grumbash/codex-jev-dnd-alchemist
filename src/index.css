@@ -2,31 +2,105 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --gh-bg: #0b1319;
+  --gh-card: #13222a;
+  --gh-card-elevated: #182b35;
+  --gh-ink: #f0ece3;
+  --gh-muted: #94a7b0;
+  --gh-accent: #d0ad77;
+  --gh-accent-light: #e5cb94;
+  --gh-line: rgba(255, 255, 255, 0.08);
+  --gh-brass-line: rgba(208, 173, 119, 0.28);
+}
+
 @layer base {
   body {
-    background-color: #0b0a0e;
+    background-color: #0b1319;
     background-image: 
-      radial-gradient(circle at 20% 15%, rgba(180, 83, 9, 0.08) 0%, transparent 45%),
-      radial-gradient(circle at 80% 80%, rgba(124, 58, 237, 0.08) 0%, transparent 45%);
-    color: #f5f5f4;
+      radial-gradient(ellipse at 15% 10%, rgba(208, 173, 119, 0.07) 0%, transparent 50%),
+      radial-gradient(ellipse at 85% 85%, rgba(27, 65, 78, 0.14) 0%, transparent 55%),
+      linear-gradient(180deg, #091015 0%, #0c151c 100%);
+    color: #f0ece3;
+    font-family: 'Signika', 'Inter', system-ui, sans-serif;
+  }
+
+  h1, h2, h3, h4, .font-display {
+    font-family: 'Cinzel', 'Georgia', serif;
   }
 }
 
-/* Custom subtle scrollbars for JEI Grimoire & Bestiary */
+/* Custom subtle scrollbars for Guild Grimoire & Inventory */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(15, 13, 20, 0.8);
+  background: rgba(11, 19, 25, 0.9);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(120, 113, 108, 0.35);
+  background: rgba(148, 167, 176, 0.25);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(217, 119, 6, 0.55);
+  background: rgba(208, 173, 119, 0.6);
 }
+
+/* Custom atmospheric glow & rune pulses */
+@keyframes runeShimmer {
+  0%, 100% {
+    box-shadow: 0 0 12px rgba(208, 173, 119, 0.15), inset 0 0 12px rgba(208, 173, 119, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 24px rgba(208, 173, 119, 0.35), inset 0 0 20px rgba(208, 173, 119, 0.22);
+  }
+}
+
+.rune-glow {
+  animation: runeShimmer 3s ease-in-out infinite;
+}
+
+@keyframes cauldronLiquid {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes bubbleFloat {
+  0% {
+    transform: translateY(12px) scale(0.6);
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(-24px) scale(1.1);
+    opacity: 0;
+  }
+}
+
+.cauldron-liquid {
+  background-size: 200% 200%;
+  animation: cauldronLiquid 6s ease infinite;
+}
+
+.cauldron-bubble-1 {
+  animation: bubbleFloat 2.2s ease-in-out infinite;
+}
+.cauldron-bubble-2 {
+  animation: bubbleFloat 3s ease-in-out infinite 0.8s;
+}
+.cauldron-bubble-3 {
+  animation: bubbleFloat 2.6s ease-in-out infinite 1.4s;
+}
+

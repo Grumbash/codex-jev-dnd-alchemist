@@ -198,7 +198,7 @@ export const MerchantHaggleModal: React.FC<MerchantHaggleModalProps> = ({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-2xl rounded-2xl border-2 border-amber-500/40 bg-gradient-to-b from-[#171422] via-[#110e19] to-[#0a0810] p-6 text-stone-100 shadow-2xl"
+        className="relative w-full max-w-2xl rounded-2xl border border-[#c9aa72]/40 bg-gradient-to-b from-[#162733] via-[#101b22] to-[#0a1217] p-6 text-[#f0ece3] shadow-2xl"
       >
         <button
           onClick={onClose}
