@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Check, Coins, Copy, Shield, Sparkles, Swords, X } from 'lucide-react';
 import { GameItem } from '../types/game';
 import { ELEMENT_META, RARITY_META } from '../data/bestiary';
+import { CompositeItemSprite } from './CompositeItemSprite';
 
 interface ItemStatblockModalProps {
   item: GameItem | null;
@@ -66,9 +67,9 @@ export const ItemStatblockModal: React.FC<ItemStatblockModalProps> = ({
         {/* Item Header */}
         <div className="flex items-start gap-4">
           <div
-            className={`w-16 h-16 rounded-2xl border-2 flex items-center justify-center text-4xl shrink-0 ${rarity.bg} ${rarity.border}`}
+            className={`w-16 h-16 rounded-2xl border-2 flex items-center justify-center shrink-0 ${rarity.bg} ${rarity.border}`}
           >
-            {item.icon}
+            <CompositeItemSprite item={item} size="xl" />
           </div>
           <div className="min-w-0 pr-6">
             <div className="flex items-center gap-2 flex-wrap">

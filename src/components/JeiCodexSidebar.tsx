@@ -19,6 +19,7 @@ import {
   RecipeRecord,
 } from '../types/game';
 import { ELEMENT_META, RARITY_META } from '../data/bestiary';
+import { CompositeItemSprite } from './CompositeItemSprite';
 
 interface JeiCodexSidebarProps {
   itemsMap: Record<string, GameItem>;
@@ -169,11 +170,15 @@ export const JeiCodexSidebar: React.FC<JeiCodexSidebarProps> = ({
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2.5 min-w-0">
               <div
-                className={`w-11 h-11 rounded-xl flex items-center justify-center text-2xl shrink-0 border ${
+                className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border ${
                   RARITY_META[selectedItem.rarity].bg
                 } ${RARITY_META[selectedItem.rarity].border}`}
               >
-                {isSelectedDiscovered ? selectedItem.icon : '❓'}
+                {isSelectedDiscovered ? (
+                  <CompositeItemSprite item={selectedItem} size="md" />
+                ) : (
+                  <span className="font-mono font-bold text-stone-500 text-lg">?</span>
+                )}
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap">
@@ -232,13 +237,12 @@ export const JeiCodexSidebar: React.FC<JeiCodexSidebarProps> = ({
                     key={el}
                     className={`px-2 py-0.5 rounded text-[10px] border ${m.bg} ${m.border} ${m.color} flex items-center gap-1`}
                   >
-                    <span>{m.emoji}</span>
                     <span>{m.label}</span>
                   </span>
                 );
               })}
               <span className="px-2 py-0.5 rounded text-[10px] bg-stone-900 border border-stone-800 text-amber-300 font-mono">
-                🪙 {selectedItem.goldValue} gp
+                {selectedItem.goldValue} gp
               </span>
             </div>
           )}
@@ -280,7 +284,6 @@ export const JeiCodexSidebar: React.FC<JeiCodexSidebarProps> = ({
                       Дроп с монстра (Harvest СЛ {selectedItem.harvestDc})
                     </div>
                     <div className="font-medium text-stone-200 mt-0.5">
-                      {monsters.find((m) => m.id === selectedItem.monsterId)?.icon}{' '}
                       {selectedItem.monsterName}
                     </div>
                   </div>
@@ -332,9 +335,9 @@ export const JeiCodexSidebar: React.FC<JeiCodexSidebarProps> = ({
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span
                             title={st.name}
-                            className="px-1.5 py-0.5 rounded bg-stone-800 text-[11px]"
+                            className="px-1.5 py-0.5 rounded bg-stone-800 text-[10px] font-mono text-amber-300"
                           >
-                            {st.icon}
+                            {st.name}
                           </span>
                           {rec.ingredientIds.map((ingId, idx) => {
                             const ing = itemsMap[ingId];
@@ -346,7 +349,7 @@ export const JeiCodexSidebar: React.FC<JeiCodexSidebarProps> = ({
                                   onClick={() => onSelectJeiItem(ing.id, 'recipe')}
                                   className="px-1.5 py-0.5 rounded bg-stone-950 border border-stone-700 hover:border-amber-500/50 text-[11px] flex items-center gap-1"
                                 >
-                                  <span>{ing.icon}</span>
+                                  <CompositeItemSprite item={ing} size="sm" className="w-4 h-4" />
                                   <span className="truncate max-w-[95px]">{ing.name}</span>
                                 </button>
                               </React.Fragment>
@@ -398,23 +401,24 @@ export const JeiCodexSidebar: React.FC<JeiCodexSidebarProps> = ({
                       className="rounded-lg bg-stone-900/90 border border-stone-800 p-2 flex items-center justify-between gap-1.5"
                     >
                       <div className="flex items-center gap-1 flex-wrap min-w-0">
-                        <span className="text-xs" title={st.name}>
-                          {st.icon}
+                        <span className="text-[10px] font-mono text-stone-400" title={st.name}>
+                          [{st.name.slice(0, 3)}]
                         </span>
                         {rec.ingredientIds.map((id, i) => {
                           const it = itemsMap[id];
+                          if (!it) return null;
                           return (
                             <React.Fragment key={id + i}>
                               {i > 0 && <span className="text-stone-500">+</span>}
                               <button
                                 onClick={() => onSelectJeiItem(id, 'recipe')}
-                                className={`px-1.5 py-0.5 rounded text-[11px] border ${
+                                className={`p-0.5 rounded border ${
                                   id === selectedItem.id
-                                    ? 'bg-amber-500/15 border-amber-500/40 text-amber-200'
-                                    : 'bg-stone-950 border-stone-800 text-stone-300'
+                                    ? 'bg-amber-500/15 border-amber-500/40'
+                                    : 'bg-stone-950 border-stone-800'
                                 }`}
                               >
-                                {it?.icon}
+                                <CompositeItemSprite item={it} size="sm" className="w-5 h-5" />
                               </button>
                             </React.Fragment>
                           );
@@ -422,13 +426,14 @@ export const JeiCodexSidebar: React.FC<JeiCodexSidebarProps> = ({
                         <ArrowRight className="w-3 h-3 text-stone-500 mx-0.5" />
                         <button
                           onClick={() => onSelectJeiItem(resItem.id, 'recipe')}
-                          className={`px-2 py-0.5 rounded text-[11px] font-medium border truncate max-w-[140px] ${
+                          className={`px-2 py-0.5 rounded text-[11px] font-medium border flex items-center gap-1 truncate max-w-[155px] ${
                             RARITY_META[resItem.rarity].bg
                           } ${RARITY_META[resItem.rarity].border} ${
                             RARITY_META[resItem.rarity].text
                           }`}
                         >
-                          {resItem.icon} {resItem.name}
+                          <CompositeItemSprite item={resItem} size="sm" className="w-4 h-4" />
+                          <span className="truncate">{resItem.name}</span>
                         </button>
                       </div>
                     </div>
@@ -482,25 +487,22 @@ export const JeiCodexSidebar: React.FC<JeiCodexSidebarProps> = ({
                     : 'bg-stone-950/70 border-stone-800/70 opacity-55 hover:opacity-85'
                 } ${isSelected ? 'ring-2 ring-amber-400 scale-105 z-10' : ''}`}
               >
-                <span className="text-2xl select-none">
-                  {isKnown ? item.icon : '❓'}
-                </span>
+                {isKnown ? (
+                  <CompositeItemSprite item={item} size="md" />
+                ) : (
+                  <span className="font-mono font-bold text-lg text-stone-600">?</span>
+                )}
 
                 <span className="mt-1 text-[9px] leading-tight text-stone-300 line-clamp-1 w-full text-center px-0.5">
-                  {isKnown ? item.name.replace('✨ Шедевральный ', '').replace('🩸 Проклятый ', '') : '???'}
+                  {isKnown
+                    ? item.name.replace('✨ Шедевральный ', '').replace('🩸 Проклятый ', '')
+                    : '???'}
                 </span>
 
                 {/* Inventory Count Badge */}
                 {count > 0 && (
                   <span className="absolute -top-1.5 -right-1.5 px-1.5 py-0.2 rounded-full bg-amber-500 text-stone-950 font-mono font-bold text-[10px] shadow">
                     {count}
-                  </span>
-                )}
-
-                {/* Element Indicator Dot */}
-                {isKnown && item.elements[0] && (
-                  <span className="absolute top-1 left-1 text-[9px]">
-                    {ELEMENT_META[item.elements[0]].emoji}
                   </span>
                 )}
               </button>

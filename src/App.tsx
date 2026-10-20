@@ -44,6 +44,7 @@ import {
 import { JevTelemetryPanel } from './components/JevTelemetryPanel';
 import { JeiCodexSidebar } from './components/JeiCodexSidebar';
 import { ItemStatblockModal } from './components/ItemStatblockModal';
+import { CompositeItemSprite, CompositeMonsterSprite } from './components/CompositeItemSprite';
 import { sfx } from './utils/sound';
 
 const STORAGE_KEY = 'dnd_jev_alchemist_save_v1';
@@ -989,7 +990,7 @@ export function App() {
                           >
                             {item ? (
                               <>
-                                <span className="text-3xl">{item.icon}</span>
+                                <CompositeItemSprite item={item} size="lg" />
                                 <span className="text-[11px] font-medium text-stone-100 mt-1.5 line-clamp-2 leading-tight">
                                   {item.name}
                                 </span>
@@ -999,7 +1000,7 @@ export function App() {
                               </>
                             ) : (
                               <>
-                                <span className="text-2xl opacity-40">🧪</span>
+                                <Flame className="w-6 h-6 opacity-35 text-amber-400" />
                                 <span className="text-[11px] font-mono mt-1">
                                   Слот {idx + 1}
                                 </span>
@@ -1035,11 +1036,12 @@ export function App() {
                       </span>
                     </div>
 
-                    {knownRecipe ? (
+                    {knownRecipe && itemsMap[knownRecipe.resultItemId] ? (
                       <div className="rounded-xl bg-emerald-950/40 border border-emerald-500/40 p-2.5 text-xs flex items-center gap-2.5">
-                        <span className="text-2xl">
-                          {itemsMap[knownRecipe.resultItemId]?.icon || '✨'}
-                        </span>
+                        <CompositeItemSprite
+                          item={itemsMap[knownRecipe.resultItemId]}
+                          size="md"
+                        />
                         <div className="min-w-0">
                           <div className="text-[10px] font-mono text-emerald-400 uppercase">
                             Известный рецепт (-3 к СЛ)
@@ -1147,7 +1149,7 @@ export function App() {
                           }`}
                         >
                           <div className="flex items-start justify-between gap-1.5">
-                            <span className="text-2xl">{item.icon}</span>
+                            <CompositeItemSprite item={item} size="md" />
                             <div className="flex items-center gap-1">
                               <button
                                 onClick={(e) => {
@@ -1237,8 +1239,8 @@ export function App() {
                       <div>
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-2xl bg-stone-950/80 border border-stone-800 flex items-center justify-center text-3xl">
-                              {monster.icon}
+                            <div className="w-14 h-14 rounded-2xl bg-stone-950/80 border border-stone-800 flex items-center justify-center">
+                              <CompositeMonsterSprite monster={monster} size="lg" />
                             </div>
                             <div>
                               <div className="flex items-center gap-2">
@@ -1285,7 +1287,7 @@ export function App() {
                                 className="rounded-xl bg-stone-950/75 hover:bg-stone-900 border border-stone-800/90 px-2.5 py-1.5 flex items-center justify-between gap-2 cursor-pointer transition-colors"
                               >
                                 <div className="flex items-center gap-2 min-w-0">
-                                  <span className="text-base">{dropItem.icon}</span>
+                                  <CompositeItemSprite item={dropItem} size="sm" />
                                   <span className={`text-xs font-medium truncate ${rarity.text}`}>
                                     {dropItem.name}
                                   </span>
@@ -1397,7 +1399,6 @@ export function App() {
                                   ELEMENT_META[bounty.requiredElement].color
                                 }`}
                               >
-                                {ELEMENT_META[bounty.requiredElement].emoji}{' '}
                                 {ELEMENT_META[bounty.requiredElement].label}
                               </span>
                             )}
@@ -1407,7 +1408,7 @@ export function App() {
                         <div className="pt-2 border-t border-stone-800 space-y-2">
                           <div className="flex items-center justify-between text-xs font-mono">
                             <span className="text-amber-300 font-bold">
-                              🪙 +{bounty.rewardGold} gp
+                              +{bounty.rewardGold} gp
                             </span>
                             <span className="text-purple-300">+{bounty.rewardXp} XP</span>
                           </div>
@@ -1455,7 +1456,7 @@ export function App() {
                           className="rounded-xl bg-stone-900/90 border border-stone-800 p-3 flex items-center justify-between gap-3"
                         >
                           <div className="flex items-center gap-2.5 min-w-0">
-                            <span className="text-2xl">{item.icon}</span>
+                            <CompositeItemSprite item={item} size="md" />
                             <div className="min-w-0">
                               <div className="text-xs font-semibold text-stone-100 truncate">
                                 {item.name}
