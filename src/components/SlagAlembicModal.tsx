@@ -238,36 +238,36 @@ export const SlagAlembicModal: React.FC<SlagAlembicModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-3xl bg-stone-900 border-2 border-amber-500/50 rounded-2xl shadow-[0_0_60px_rgba(217,119,6,0.3)] overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="relative w-full max-w-3xl bg-stone-900 border-2 border-amber-500/50 rounded-2xl shadow-[0_0_60px_rgba(217,119,6,0.3)] overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header Ribbon */}
-        <div className="bg-gradient-to-r from-stone-950 via-amber-950/60 to-stone-950 px-6 py-4 border-b border-amber-500/30 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-2xl shadow-inner">
+        <div className="bg-gradient-to-r from-stone-950 via-amber-950/60 to-stone-950 px-4 sm:px-6 py-3 sm:py-4 border-b border-amber-500/30 flex items-center justify-between gap-2 shrink-0">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-xl sm:text-2xl shrink-0 shadow-inner">
               ⚗️
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h2 className="font-serif font-black text-amber-200 text-lg tracking-wide uppercase">
+                <h2 className="font-serif font-black text-amber-200 text-sm sm:text-lg tracking-wide uppercase truncate">
                   Перегонный куб Скрепа
                 </h2>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-mono">
+                <span className="hidden sm:inline-block text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-mono">
                   Тигель Дальнего Камня
                 </span>
               </div>
-              <p className="text-xs text-stone-400">
+              <p className="text-[11px] sm:text-xs text-stone-400 truncate">
                 Очиститель алхимического шлака и Великая Трансмутация Реликвий
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             {/* Slag Counter */}
-            <div className="flex items-center gap-2 bg-stone-950/80 px-3 py-1.5 rounded-xl border border-stone-700">
-              <span className="text-base">🪨</span>
-              <span className="text-xs font-mono text-stone-300">
+            <div className="flex items-center gap-1.5 sm:gap-2 bg-stone-950/80 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl border border-stone-700">
+              <span className="text-sm sm:text-base">🪨</span>
+              <span className="text-[11px] sm:text-xs font-mono text-stone-300">
                 Шлак:{' '}
-                <span className="font-bold text-amber-400 text-sm">{slagCount} шт.</span>
+                <span className="font-bold text-amber-400 text-xs sm:text-sm">{slagCount} шт.</span>
               </span>
             </div>
 
@@ -281,10 +281,10 @@ export const SlagAlembicModal: React.FC<SlagAlembicModalProps> = ({
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex border-b border-stone-800 bg-stone-950/50 px-6 pt-2 gap-2">
+        <div className="flex border-b border-stone-800 bg-stone-950/50 px-3 sm:px-6 pt-2 gap-1 sm:gap-2 overflow-x-auto no-scrollbar shrink-0">
           <button
             onClick={() => setActiveTab('distill')}
-            className={`pb-3 px-4 font-serif text-xs font-bold transition border-b-2 flex items-center gap-2 ${
+            className={`pb-2.5 sm:pb-3 px-3 sm:px-4 font-serif text-xs font-bold transition border-b-2 flex items-center gap-1.5 sm:gap-2 shrink-0 ${
               activeTab === 'distill'
                 ? 'border-amber-500 text-amber-200'
                 : 'border-transparent text-stone-400 hover:text-stone-200'
@@ -295,19 +295,19 @@ export const SlagAlembicModal: React.FC<SlagAlembicModalProps> = ({
           </button>
           <button
             onClick={() => setActiveTab('fuse')}
-            className={`pb-3 px-4 font-serif text-xs font-bold transition border-b-2 flex items-center gap-2 ${
+            className={`pb-2.5 sm:pb-3 px-3 sm:px-4 font-serif text-xs font-bold transition border-b-2 flex items-center gap-1.5 sm:gap-2 shrink-0 ${
               activeTab === 'fuse'
                 ? 'border-amber-500 text-amber-200'
                 : 'border-transparent text-stone-400 hover:text-stone-200'
             }`}
           >
             <span>👑</span>
-            <span>Слияние Реликвий (Тир-3 Артефакты)</span>
+            <span>Слияние Реликвий (Тир-3)</span>
           </button>
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 overflow-y-auto space-y-6 flex-1">
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-5 flex-1">
           {activeTab === 'distill' ? (
             <div className="space-y-4">
               <div className="p-4 rounded-xl bg-gradient-to-r from-stone-950 to-amber-950/20 border border-amber-500/20 flex items-center gap-4">

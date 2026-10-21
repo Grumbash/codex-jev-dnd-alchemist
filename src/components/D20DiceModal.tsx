@@ -532,21 +532,21 @@ export const D20DiceModal: React.FC<D20DiceModalProps> = ({
   const isSuccess = dc !== undefined ? total >= dc : true;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
       <div className="relative w-full max-w-lg bg-stone-900 border-2 border-amber-500/40 rounded-2xl shadow-[0_0_60px_rgba(217,119,6,0.3)] overflow-hidden flex flex-col">
         {/* Header Ribbon */}
-        <div className="bg-gradient-to-r from-stone-950 via-amber-950/50 to-stone-950 px-5 py-3 border-b border-amber-500/30 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <span className="text-2xl">🎲</span>
-            <div>
-              <h3 className="font-serif font-black text-amber-200 text-sm tracking-wider uppercase">
+        <div className="bg-gradient-to-r from-stone-950 via-amber-950/50 to-stone-950 px-3.5 sm:px-5 py-2.5 sm:py-3 border-b border-amber-500/30 flex items-center justify-between">
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+            <span className="text-xl sm:text-2xl shrink-0">🎲</span>
+            <div className="min-w-0">
+              <h3 className="font-serif font-black text-amber-200 text-xs sm:text-sm tracking-wider uppercase truncate">
                 {title}
               </h3>
-              <p className="text-xs text-stone-400 font-mono">{subtitle}</p>
+              <p className="text-[10px] sm:text-xs text-stone-400 font-mono truncate">{subtitle}</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {/* Skin Selector */}
             <div className="flex items-center gap-1 bg-stone-950/80 px-2 py-1 rounded-lg border border-stone-800">
               {(Object.keys(DICE_SKINS) as DiceSkin[]).map((skinKey) => (
@@ -554,7 +554,7 @@ export const D20DiceModal: React.FC<D20DiceModalProps> = ({
                   key={skinKey}
                   onClick={() => setSelectedSkin(skinKey)}
                   title={DICE_SKINS[skinKey].name}
-                  className={`w-4 h-4 rounded-full border transition-transform ${
+                  className={`w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full border transition-transform ${
                     selectedSkin === skinKey ? 'scale-125 ring-2 ring-amber-400' : 'opacity-60'
                   }`}
                   style={{
@@ -579,16 +579,16 @@ export const D20DiceModal: React.FC<D20DiceModalProps> = ({
           onClick={() => {
             if (!isRolling) triggerRoll();
           }}
-          className="relative w-full h-[360px] bg-gradient-to-b from-[#0a0f14] via-[#101920] to-[#0a0f14] flex items-center justify-center cursor-grab active:cursor-grabbing select-none overflow-hidden"
+          className="relative w-full h-[290px] sm:h-[360px] bg-gradient-to-b from-[#0a0f14] via-[#101920] to-[#0a0f14] flex items-center justify-center cursor-grab active:cursor-grabbing select-none overflow-hidden"
         >
           {/* Subtle Octagonal Dice Tray Border */}
-          <div className="absolute inset-4 rounded-3xl border border-amber-500/15 pointer-events-none shadow-[inset_0_0_50px_rgba(0,0,0,0.8)]" />
+          <div className="absolute inset-3 sm:inset-4 rounded-3xl border border-amber-500/15 pointer-events-none shadow-[inset_0_0_50px_rgba(0,0,0,0.8)]" />
 
           <div ref={mountRef} className="w-full h-full" />
 
           {/* Tray Interaction Hint */}
-          <div className="absolute top-3 left-4 text-[10px] text-stone-400 font-mono pointer-events-none bg-stone-950/70 px-2 py-0.5 rounded border border-stone-800">
-            {isRolling ? '🌀 Кувырок кубика...' : '🖐️ Вращайте кубик мышью • Клик — переброс'}
+          <div className="absolute top-2.5 sm:top-3 left-3 sm:left-4 text-[9px] sm:text-[10px] text-stone-400 font-mono pointer-events-none bg-stone-950/70 px-2 py-0.5 rounded border border-stone-800">
+            {isRolling ? '🌀 Кувырок кубика...' : '🖐️ Вращайте • Клик — переброс'}
           </div>
 
           {/* Settled Result Card Overlay */}

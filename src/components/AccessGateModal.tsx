@@ -117,19 +117,19 @@ export const AccessGateModal: React.FC<AccessGateModalProps> = ({
   const isGm = session?.role === 'gm';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-xl bg-stone-900 border-2 border-amber-500/40 rounded-2xl shadow-[0_0_60px_rgba(217,119,6,0.3)] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="relative w-full max-w-xl max-h-[92vh] bg-stone-900 border-2 border-amber-500/40 rounded-2xl shadow-[0_0_60px_rgba(217,119,6,0.3)] overflow-hidden flex flex-col">
         {/* Header Ribbon */}
-        <div className="bg-gradient-to-r from-stone-950 via-amber-950/60 to-stone-950 px-6 py-4 border-b border-amber-500/30 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 text-xl shadow-inner">
-              <Shield className="w-5 h-5" />
+        <div className="bg-gradient-to-r from-stone-950 via-amber-950/60 to-stone-950 px-4 sm:px-6 py-3 sm:py-4 border-b border-amber-500/30 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 text-lg sm:text-xl shrink-0 shadow-inner">
+              <Shield className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <h2 className="font-serif font-black text-amber-200 text-base tracking-wide uppercase">
+            <div className="min-w-0">
+              <h2 className="font-serif font-black text-amber-200 text-sm sm:text-base tracking-wide uppercase truncate">
                 {isGuest ? 'Магический Барьер Дальнего Камня' : 'Управление Доступом & Foundry VTT'}
               </h2>
-              <p className="text-xs text-stone-400">
+              <p className="text-[11px] sm:text-xs text-stone-400 truncate">
                 Кампания «Монстры» • Защита чертогов алхимии от посторонних
               </p>
             </div>
@@ -138,7 +138,7 @@ export const AccessGateModal: React.FC<AccessGateModalProps> = ({
           {!isGuest && (
             <button
               onClick={onClose}
-              className="text-stone-400 hover:text-amber-300 p-1.5 rounded-lg hover:bg-stone-800 transition"
+              className="text-stone-400 hover:text-amber-300 p-1.5 rounded-lg hover:bg-stone-800 transition shrink-0 ml-2"
             >
               ✕
             </button>
@@ -146,7 +146,7 @@ export const AccessGateModal: React.FC<AccessGateModalProps> = ({
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 overflow-y-auto space-y-6">
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-5">
           {/* 1. GUEST LOGIN SCREEN */}
           {isGuest ? (
             <form onSubmit={handleLogin} className="space-y-5">

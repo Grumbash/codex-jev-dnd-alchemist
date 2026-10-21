@@ -952,32 +952,52 @@ export function App() {
       )}
 
       {/* TOP HUD NAVBAR — СТИЛЬ ЦИТАДЕЛИ ДАЛЬНЕГО КАМНЯ */}
-      <header className="sticky top-0 z-30 border-b border-[#c9aa72]/25 bg-[#0c151c]/95 backdrop-blur-md px-4 py-2.5 shadow-xl">
-        <div className="max-w-[1600px] mx-auto flex flex-wrap items-center justify-between gap-3">
-          {/* Brand Title */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#14242e] border border-[#c9aa72]/40 flex items-center justify-center text-xl shadow-[inset_0_1px_4px_rgba(208,173,119,0.3)]">
-              ⚗️
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="font-display font-bold text-base sm:text-lg tracking-wide text-[#f0ece3]">
-                  МИР ГИЛЬДИЙ: <span className="text-[#d0ad77]">ТИГЕЛЬ ДАЛЬНЕГО КАМНЯ</span>
-                </h1>
-                <span className="hidden md:inline-flex px-2 py-0.5 rounded bg-[#162732] border border-[#c9aa72]/30 text-[#d0ad77] font-mono text-[10px]">
-                  Кампания «Монстры» • Jev NAR
-                </span>
+      <header className="sticky top-0 z-30 border-b border-[#c9aa72]/25 bg-[#0c151c]/95 backdrop-blur-md px-3 sm:px-4 py-2 sm:py-2.5 shadow-xl">
+        <div className="max-w-[1600px] mx-auto flex flex-col sm:flex-row sm:flex-wrap items-center justify-between gap-2 sm:gap-3">
+          {/* Mobile Top Row / Desktop Brand Title */}
+          <div className="w-full sm:w-auto flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-[#14242e] border border-[#c9aa72]/40 flex items-center justify-center text-lg sm:text-xl shrink-0 shadow-[inset_0_1px_4px_rgba(208,173,119,0.3)]">
+                ⚗️
               </div>
-              <p className="text-[11px] text-[#94a7b0]">
-                День {day} • Бастион: Мыс Дальний Камень (Смотритель Скреп)
-              </p>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <h1 className="font-display font-bold text-sm sm:text-lg tracking-wide text-[#f0ece3] truncate">
+                    МИР ГИЛЬДИЙ: <span className="text-[#d0ad77]">ТИГЕЛЬ</span>
+                  </h1>
+                  <span className="hidden md:inline-flex px-1.5 py-0.2 rounded bg-[#162732] border border-[#c9aa72]/30 text-[#d0ad77] font-mono text-[9px]">
+                    Кампания «Монстры»
+                  </span>
+                </div>
+                <p className="text-[10px] sm:text-[11px] text-[#94a7b0] truncate">
+                  День {day} • Мыс Дальний Камень
+                </p>
+              </div>
+            </div>
+
+            {/* Quick Mobile Resource Chips (Visible on Mobile only) */}
+            <div className="flex sm:hidden items-center gap-1.5 shrink-0">
+              <div className="rounded-lg bg-[#17231c] border border-[#c9aa72]/40 px-2 py-1 flex items-center gap-1 text-[11px] font-mono font-bold text-[#e5cb94]">
+                <span>🪙</span>
+                <span>{gold}</span>
+              </div>
+              <div
+                className={`rounded-lg border px-2 py-1 flex items-center gap-1 text-[11px] font-mono font-bold ${
+                  isExhausted
+                    ? 'bg-rose-950/50 border-rose-500/60 text-rose-300'
+                    : 'bg-[#101b22] border-[#233540] text-sky-300'
+                }`}
+              >
+                <span>⚡</span>
+                <span>{stamina}</span>
+              </div>
             </div>
           </div>
 
           {/* Party Hero Centerpiece (Квик / Нокта / Слоу) */}
-          <div className="rounded-xl bg-[#091116] border border-[#c9aa72]/30 p-1 flex items-center gap-1.5 shadow-inner">
-            <span className="text-[10px] font-mono uppercase text-[#7d929d] px-2 hidden sm:inline">
-              Мастер тигля:
+          <div className="w-full sm:w-auto rounded-xl bg-[#091116] border border-[#c9aa72]/30 p-1 flex items-center justify-between sm:justify-start gap-1 shadow-inner">
+            <span className="text-[10px] font-mono uppercase text-[#7d929d] px-2 hidden md:inline">
+              Мастер:
             </span>
             {GUILD_WORLD_HEROES.map((hero) => {
               const selected = hero.id === activeHeroId;
@@ -989,14 +1009,14 @@ export function App() {
                     setActiveHeroId(hero.id);
                   }}
                   title={`${hero.name} (${hero.raceClass}) — Бонус крафта +${hero.craftBonus}, разделки +${hero.harvestBonus}`}
-                  className={`px-2.5 py-1.5 rounded-lg text-xs font-display font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  className={`flex-1 sm:flex-initial px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg text-xs font-display font-bold flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer ${
                     selected
                       ? 'bg-[#1a2d38] border border-[#d0ad77] text-[#fbf7ee] shadow-[0_0_12px_rgba(208,173,119,0.25)]'
                       : 'text-[#8b9ea8] hover:text-[#f0ece3] hover:bg-[#101b22]'
                   }`}
                 >
                   <span className="text-sm">{hero.avatarEmoji}</span>
-                  <span>{hero.name.split(' ')[0]}</span>
+                  <span className="truncate">{hero.name.split(' ')[0]}</span>
                   <span className="text-[10px] font-mono text-[#d0ad77]/80 font-normal">
                     (+{hero.craftBonus})
                   </span>
@@ -1005,8 +1025,8 @@ export function App() {
             })}
           </div>
 
-          {/* Progression Pillars: Tabletop Roll Mode, Mastery, Stamina, Gold, GM Mode, Settings */}
-          <div className="flex flex-wrap items-center gap-2">
+          {/* Progression Pillars: Ambient, Tabletop, Mastery, Stamina, Gold, GM Mode, Settings */}
+          <div className="w-full sm:w-auto flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 sm:py-0">
             {/* Cape Farstone Ambient Soundscape Toggle */}
             <button
               onClick={() => {
@@ -1018,8 +1038,8 @@ export function App() {
                     : '🔇 Эмбиент мыса выключен.'
                 );
               }}
-              title="Переключить атмосферный эмбиент Мыса Дальний Камень (шум прибоя, потрескивание углей очага, Черный Колокол)"
-              className={`px-3 py-1.5 rounded-xl border text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+              title="Переключить атмосферный эмбиент Мыса Дальний Камень"
+              className={`shrink-0 px-2.5 sm:px-3 py-1.5 rounded-xl border text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                 isAmbientPlaying
                   ? 'bg-cyan-950/70 border-cyan-400 text-cyan-200 shadow-[0_0_14px_rgba(6,182,212,0.3)]'
                   : 'bg-[#101b22] border-[#293d48] text-[#9cb0b9] hover:border-cyan-500/40 hover:text-[#f0ece3]'
@@ -1029,7 +1049,7 @@ export function App() {
                 {isAmbientPlaying ? '🌊' : '🔇'}
               </span>
               <span className="hidden sm:inline">
-                {isAmbientPlaying ? 'Эмбиент: ВКЛ' : 'Эмбиент Мыса'}
+                {isAmbientPlaying ? 'Эмбиент: ВКЛ' : 'Эмбиент'}
               </span>
             </button>
 
@@ -1040,42 +1060,39 @@ export function App() {
                 setTabletopRollMode((prev) => !prev);
               }}
               title="Переключить между виртуальным броском и вводом реального кубика d20 со стола"
-              className={`px-3 py-1.5 rounded-xl border text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`shrink-0 px-2.5 sm:px-3 py-1.5 rounded-xl border text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                 tabletopRollMode
                   ? 'bg-emerald-950/70 border-emerald-400 text-emerald-200 shadow-[0_0_14px_rgba(16,185,129,0.25)]'
                   : 'bg-[#101b22] border-[#293d48] text-[#9cb0b9] hover:border-[#c9aa72]/40 hover:text-[#f0ece3]'
               }`}
             >
               <Dices className="w-3.5 h-3.5 text-[#d0ad77]" />
-              <span>{tabletopRollMode ? `🎯 Стол (${manualD20Roll})` : '🎲 Авто-d20'}</span>
+              <span className="hidden sm:inline">
+                {tabletopRollMode ? `🎯 Стол (${manualD20Roll})` : '🎲 Авто-d20'}
+              </span>
+              <span className="sm:hidden font-mono">
+                {tabletopRollMode ? `🎯 ${manualD20Roll}` : '🎲'}
+              </span>
             </button>
 
             {/* Mastery Level */}
-            <div className="rounded-xl bg-[#101b22] border border-[#233540] px-3 py-1.5 flex items-center gap-2">
-              <Award className="w-4 h-4 text-[#d0ad77] shrink-0" />
+            <div className="shrink-0 rounded-xl bg-[#101b22] border border-[#233540] px-2.5 sm:px-3 py-1.5 flex items-center gap-1.5">
+              <Award className="w-3.5 h-3.5 text-[#d0ad77] shrink-0" />
               <div>
-                <div className="flex items-center gap-1.5 text-xs">
+                <div className="flex items-center gap-1 text-[11px] sm:text-xs">
                   <span className="font-semibold text-[#f0ece3]">
-                    Ур. {alchemistLevel}
+                    Ур.{alchemistLevel}
                   </span>
-                  <span className="px-1.5 py-0.2 rounded bg-[#d0ad77]/15 text-[#e5cb94] font-mono text-[10px] font-bold">
+                  <span className="px-1 py-0.2 rounded bg-[#d0ad77]/15 text-[#e5cb94] font-mono text-[9px] font-bold">
                     +{proficiencyBonus}
                   </span>
-                </div>
-                <div className="w-16 h-1.5 rounded-full bg-[#0a1217] mt-1 overflow-hidden">
-                  <div
-                    className="h-full bg-[#d0ad77] transition-all"
-                    style={{
-                      width: `${Math.min(100, Math.round((xp / nextLevelXp) * 100))}%`,
-                    }}
-                  />
                 </div>
               </div>
             </div>
 
-            {/* Stamina & Rest */}
+            {/* Stamina & Rest (Desktop view) */}
             <div
-              className={`rounded-xl border px-3 py-1.5 flex items-center gap-2 ${
+              className={`hidden sm:flex shrink-0 rounded-xl border px-3 py-1.5 items-center gap-2 ${
                 isExhausted
                   ? 'bg-rose-950/50 border-rose-500/60'
                   : 'bg-[#101b22] border-[#233540]'
@@ -1096,7 +1113,7 @@ export function App() {
               </div>
               <button
                 onClick={handleLongRest}
-                title="Долгий отдых на Дальнем Камне (восстанавливает энергию и обновляет поручения)"
+                title="Долгий отдых на Дальнем Камне"
                 className="ml-1 px-2 py-0.5 rounded bg-[#1c2e39] hover:bg-[#253d4b] border border-[#c9aa72]/30 text-[#e5cb94] text-[10px] font-medium flex items-center gap-1 transition-colors cursor-pointer"
               >
                 <Moon className="w-2.5 h-2.5" />
@@ -1104,8 +1121,8 @@ export function App() {
               </button>
             </div>
 
-            {/* Gold */}
-            <div className="rounded-xl bg-[#17231c] border border-[#c9aa72]/40 px-3 py-1.5 flex items-center gap-2">
+            {/* Gold (Desktop view) */}
+            <div className="hidden sm:flex shrink-0 rounded-xl bg-[#17231c] border border-[#c9aa72]/40 px-3 py-1.5 items-center gap-2">
               <span className="text-sm">🪙</span>
               <div>
                 <div className="font-mono font-bold text-xs text-[#e5cb94]">
@@ -1121,7 +1138,7 @@ export function App() {
                 sfx.playClick();
                 setShowAccessGateModal(true);
               }}
-              className={`px-3 py-1.5 rounded-xl border text-xs font-display font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`shrink-0 px-2.5 sm:px-3 py-1.5 rounded-xl border text-xs font-display font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                 authSession?.role === 'gm'
                   ? 'bg-amber-950/60 border-amber-500/60 text-amber-300 shadow-md'
                   : 'bg-[#101b22] border-[#293d48] text-[#9cb0b9] hover:text-[#f0ece3]'
@@ -1129,36 +1146,29 @@ export function App() {
               title="Управление доступом и ссылками для Foundry VTT"
             >
               <Shield className="w-3.5 h-3.5 text-amber-400" />
-              <span>{authSession?.role === 'gm' ? 'Доступ: GM' : 'Foundry'}</span>
+              <span>{authSession?.role === 'gm' ? 'GM' : 'Foundry'}</span>
             </button>
 
             {/* DM Mode Button (GM Only) */}
-            <button
-              onClick={() => {
-                sfx.playClick();
-                if (authSession?.role === 'gm') {
+            {authSession?.role === 'gm' && (
+              <button
+                onClick={() => {
+                  sfx.playClick();
                   setShowDmModal(true);
-                } else {
-                  showToast('Для входа в Режим Ведущего требуется ввести GM-ключ.');
-                  setShowAccessGateModal(true);
-                }
-              }}
-              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#2a2215] to-[#1d1b2a] hover:from-[#3a2f1c] hover:to-[#28253b] border border-[#c9aa72]/60 text-xs font-display font-bold text-[#e5cb94] flex items-center gap-1.5 shadow-md cursor-pointer"
-              title={
-                authSession?.role === 'gm'
-                  ? 'Открыть Панель Ведущего (выдача трофеев и создание монстров)'
-                  : 'Требуется авторизация Ведущего (GM Key)'
-              }
-            >
-              <Crown className="w-3.5 h-3.5 text-[#d0ad77]" />
-              <span className="hidden sm:inline">Режим ГМ</span>
-            </button>
+                }}
+                className="shrink-0 px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#2a2215] to-[#1d1b2a] hover:from-[#3a2f1c] hover:to-[#28253b] border border-[#c9aa72]/60 text-xs font-display font-bold text-[#e5cb94] flex items-center gap-1 shadow-md cursor-pointer"
+                title="Открыть Панель Ведущего (выдача трофеев и создание монстров)"
+              >
+                <Crown className="w-3.5 h-3.5 text-[#d0ad77]" />
+                <span className="hidden sm:inline">Режим ГМ</span>
+              </button>
+            )}
 
             {/* Settings Menu Dropdown */}
-            <div className="relative">
+            <div className="relative shrink-0">
               <button
                 onClick={() => setShowSettingsMenu((prev) => !prev)}
-                className={`p-2 rounded-xl border transition-colors cursor-pointer ${
+                className={`p-1.5 sm:p-2 rounded-xl border transition-colors cursor-pointer ${
                   showSettingsMenu
                     ? 'bg-[#1b2b35] border-[#c9aa72]/60 text-[#f0ece3]'
                     : 'bg-[#101b22] hover:bg-[#182730] border-[#293d48] text-[#94a7b0]'
@@ -1239,7 +1249,7 @@ export function App() {
       </header>
 
       {/* MAIN CONTENT GRID: Left/Center Workspace + Right JEI Codex Sidebar */}
-      <main className="flex-1 max-w-[1600px] w-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-12 gap-5">
+      <main className="flex-1 max-w-[1600px] w-full mx-auto p-2 sm:p-4 grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-5">
         {/* LEFT & CENTER WORKSPACE (8 cols) */}
         <div className="lg:col-span-8 flex flex-col gap-4">
           {/* DAILY LAIR EVENT BANNER (Мыс Дальний Камень) */}
@@ -1350,13 +1360,13 @@ export function App() {
           </div>
 
           {/* Navigation Bar between the 5 Core Screens — Стиль фолианта */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 p-1.5 rounded-2xl bg-[#0e1820] border border-[#c9aa72]/25 shadow-lg">
+          <div className="flex overflow-x-auto no-scrollbar sm:grid sm:grid-cols-5 gap-1.5 p-1.5 rounded-2xl bg-[#0e1820] border border-[#c9aa72]/25 shadow-lg">
             <button
               onClick={() => {
                 sfx.playClick();
                 setActiveMainTab('crucible');
               }}
-              className={`py-2.5 px-2 rounded-xl font-display font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              className={`py-2 sm:py-2.5 px-3 sm:px-2 rounded-xl font-display font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer shrink-0 sm:shrink min-w-[110px] sm:min-w-0 ${
                 activeMainTab === 'crucible'
                   ? 'bg-[#182a34] text-[#fbf7ee] border border-[#d0ad77] shadow-[0_2px_10px_rgba(208,173,119,0.2)]'
                   : 'text-[#8b9ea8] hover:text-[#f0ece3] hover:bg-[#121f28]'
@@ -1371,14 +1381,14 @@ export function App() {
                 sfx.playClick();
                 setActiveMainTab('codex');
               }}
-              className={`py-2.5 px-2 rounded-xl font-display font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              className={`py-2 sm:py-2.5 px-3 sm:px-2 rounded-xl font-display font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer shrink-0 sm:shrink min-w-[130px] sm:min-w-0 ${
                 activeMainTab === 'codex'
                   ? 'bg-[#182a34] text-[#e5cb94] border border-[#c9aa72] shadow-[0_2px_10px_rgba(208,173,119,0.2)]'
                   : 'text-[#8b9ea8] hover:text-[#f0ece3] hover:bg-[#121f28]'
               }`}
             >
               <BookOpen className="w-4 h-4 text-[#e5cb94] shrink-0" />
-              <span className="truncate">2. Каталог-Гримуар</span>
+              <span className="truncate">2. Гримуар</span>
             </button>
 
             <button
@@ -1386,7 +1396,7 @@ export function App() {
                 sfx.playClick();
                 setActiveMainTab('bestiary');
               }}
-              className={`py-2.5 px-2 rounded-xl font-display font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              className={`py-2 sm:py-2.5 px-3 sm:px-2 rounded-xl font-display font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer shrink-0 sm:shrink min-w-[125px] sm:min-w-0 ${
                 activeMainTab === 'bestiary'
                   ? 'bg-[#182a34] text-emerald-200 border border-emerald-500/60 shadow-[0_2px_10px_rgba(16,185,129,0.2)]'
                   : 'text-[#8b9ea8] hover:text-[#f0ece3] hover:bg-[#121f28]'
@@ -1401,7 +1411,7 @@ export function App() {
                 sfx.playClick();
                 setActiveMainTab('hero_raid');
               }}
-              className={`py-2.5 px-2 rounded-xl font-display font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              className={`py-2 sm:py-2.5 px-3 sm:px-2 rounded-xl font-display font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer shrink-0 sm:shrink min-w-[120px] sm:min-w-0 ${
                 activeMainTab === 'hero_raid'
                   ? 'bg-[#182a34] text-rose-200 border border-rose-500/60 shadow-[0_2px_10px_rgba(244,63,94,0.2)]'
                   : 'text-[#8b9ea8] hover:text-[#f0ece3] hover:bg-[#121f28]'
@@ -1418,7 +1428,7 @@ export function App() {
                 sfx.playClick();
                 setActiveMainTab('guild');
               }}
-              className={`py-2.5 px-2 rounded-xl font-display font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              className={`py-2 sm:py-2.5 px-3 sm:px-2 rounded-xl font-display font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer shrink-0 sm:shrink min-w-[125px] sm:min-w-0 ${
                 activeMainTab === 'guild'
                   ? 'bg-[#182a34] text-amber-300 border border-amber-500/60 shadow-[0_2px_10px_rgba(208,173,119,0.2)]'
                   : 'text-[#8b9ea8] hover:text-[#f0ece3] hover:bg-[#121f28]'
@@ -1554,25 +1564,25 @@ export function App() {
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full sm:w-auto">
                     {[
                       {
                         id: 'alchemist',
                         label: 'Алхимия',
                         sub: 'Зелья, Яды, Мутагены',
-                        icon: <Flame className="w-4 h-4 text-emerald-400" />,
+                        icon: <Flame className="w-4 h-4 text-emerald-400 shrink-0" />,
                       },
                       {
                         id: 'blacksmith',
                         label: 'Кузня',
                         sub: 'Клинки, Молоты, Латы',
-                        icon: <Hammer className="w-4 h-4 text-amber-400" />,
+                        icon: <Hammer className="w-4 h-4 text-amber-400 shrink-0" />,
                       },
                       {
                         id: 'artificer',
                         label: 'Артефакторика',
                         sub: 'Кольца, Жезлы, Мантии',
-                        icon: <Wand2 className="w-4 h-4 text-purple-400" />,
+                        icon: <Wand2 className="w-4 h-4 text-purple-400 shrink-0" />,
                       },
                     ].map((st) => (
                       <button
@@ -1581,16 +1591,16 @@ export function App() {
                           sfx.playClick();
                           setStation(st.id as CraftingStation);
                         }}
-                        className={`px-3.5 py-2 rounded-xl border text-left transition-all flex items-center gap-2.5 cursor-pointer ${
+                        className={`px-2.5 sm:px-3.5 py-2 rounded-xl border text-left transition-all flex items-center gap-2 cursor-pointer ${
                           station === st.id
                             ? 'bg-[#192b36] border-[#d0ad77] text-[#fbf7ee] shadow-md'
                             : 'bg-[#0d161d] border-[#223541] text-[#8699a2] hover:text-[#f0ece3] hover:border-[#c9aa72]/30'
                         }`}
                       >
                         {st.icon}
-                        <div>
-                          <div className="text-xs font-bold leading-none">{st.label}</div>
-                          <div className="text-[10px] text-[#7d929e] mt-0.5 hidden sm:block">
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold leading-none truncate">{st.label}</div>
+                          <div className="text-[10px] text-[#7d929e] mt-0.5 hidden sm:block truncate">
                             {st.sub}
                           </div>
                         </div>
@@ -1603,20 +1613,20 @@ export function App() {
                         sfx.playClick();
                         setShowAlembicModal(true);
                       }}
-                      className="px-3.5 py-2 rounded-xl border border-amber-500/50 bg-[#1e1710] hover:bg-[#2b1f14] text-amber-200 text-left transition-all flex items-center gap-2.5 cursor-pointer shadow-md"
+                      className="px-2.5 sm:px-3.5 py-2 rounded-xl border border-amber-500/50 bg-[#1e1710] hover:bg-[#2b1f14] text-amber-200 text-left transition-all flex items-center gap-2 cursor-pointer shadow-md"
                       title="Открыть Перегонный куб Скрепа (Очиститель шлака и Великая Трансмутация)"
                     >
-                      <span className="text-xl">⚗️</span>
-                      <div>
+                      <span className="text-lg sm:text-xl shrink-0">⚗️</span>
+                      <div className="min-w-0">
                         <div className="text-xs font-bold leading-none flex items-center gap-1.5">
-                          <span>Куб Скрепа</span>
+                          <span className="truncate">Куб Скрепа</span>
                           {(inventory.alchemical_slag || 0) > 0 && (
-                            <span className="px-1.5 py-0.2 rounded-full bg-amber-500/30 text-amber-300 text-[10px] font-mono">
+                            <span className="px-1.5 py-0.2 rounded-full bg-amber-500/30 text-amber-300 text-[10px] font-mono shrink-0">
                               {inventory.alchemical_slag}
                             </span>
                           )}
                         </div>
-                        <div className="text-[10px] text-amber-400/80 mt-0.5 hidden sm:block">
+                        <div className="text-[10px] text-amber-400/80 mt-0.5 hidden sm:block truncate">
                           Шлак & Реликвии
                         </div>
                       </div>
@@ -1627,7 +1637,7 @@ export function App() {
                 {/* Crucible Chamber Layout */}
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-stretch">
                   {/* Reagent Slots: Crucible Chamber (7 cols) */}
-                  <div className="md:col-span-7 flex flex-col justify-between py-6 px-4 rounded-2xl bg-gradient-to-b from-[#0c161d] to-[#091117] border border-[#c9aa72]/35 relative overflow-hidden shadow-inner">
+                  <div className="md:col-span-7 flex flex-col justify-between py-4 sm:py-6 px-2.5 sm:px-4 rounded-2xl bg-gradient-to-b from-[#0c161d] to-[#091117] border border-[#c9aa72]/35 relative overflow-hidden shadow-inner">
                     {/* Background Runic Crucible Motif */}
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-5">
                       <div className="w-72 h-72 rounded-full border-4 border-dashed border-[#d0ad77]" />
@@ -1650,20 +1660,20 @@ export function App() {
                     </div>
 
                     {/* Sockets Row */}
-                    <div className="flex items-center justify-center gap-3 relative z-10 py-2">
+                    <div className="flex items-center justify-center gap-1.5 sm:gap-3 relative z-10 py-2">
                       {Array.from({ length: maxCrucibleSlots }).map((_, idx) => {
                         const itemId = crucibleSlots[idx];
                         const item = itemId ? itemsMap[itemId] : null;
                         return (
                           <React.Fragment key={idx}>
                             {idx > 0 && (
-                              <div className="flex flex-col items-center justify-center text-[#d0ad77]/60 font-mono text-sm">
+                              <div className="flex flex-col items-center justify-center text-[#d0ad77]/60 font-mono text-xs sm:text-sm shrink-0">
                                 <span>✦</span>
                               </div>
                             )}
                             <div
                               onClick={() => item && handleRemoveCrucibleSlot(idx)}
-                              className={`w-32 h-36 rounded-2xl border-2 flex flex-col items-center justify-center p-2.5 text-center transition-all cursor-pointer select-none relative group ${
+                              className={`w-24 h-28 sm:w-32 sm:h-36 flex-1 max-w-[124px] rounded-2xl border-2 flex flex-col items-center justify-center p-1.5 sm:p-2.5 text-center transition-all cursor-pointer select-none relative group ${
                                 item
                                   ? `${RARITY_META[item.rarity].bg} ${
                                       RARITY_META[item.rarity].border
@@ -1673,24 +1683,29 @@ export function App() {
                             >
                               {item ? (
                                 <>
-                                  <CompositeItemSprite item={item} size="lg" />
-                                  <span className="text-[11px] font-semibold text-[#f0ece3] mt-2 line-clamp-2 leading-tight">
+                                  <div className="hidden sm:block">
+                                    <CompositeItemSprite item={item} size="lg" />
+                                  </div>
+                                  <div className="sm:hidden">
+                                    <CompositeItemSprite item={item} size="sm" />
+                                  </div>
+                                  <span className="text-[10px] sm:text-[11px] font-semibold text-[#f0ece3] mt-1 sm:mt-2 line-clamp-1 sm:line-clamp-2 leading-tight">
                                     {item.name}
                                   </span>
-                                  <span className="text-[9px] font-mono text-[#d0ad77] mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <span className="text-[9px] font-mono text-[#d0ad77] mt-0.5 sm:mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                     (убрать ✕)
                                   </span>
                                 </>
                               ) : (
                                 <>
-                                  <div className="w-8 h-8 rounded-full border border-[#2b404f] flex items-center justify-center text-[#d0ad77]/40 mb-1">
+                                  <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full border border-[#2b404f] flex items-center justify-center text-[#d0ad77]/40 mb-0.5 sm:mb-1 text-xs">
                                     {idx + 1}
                                   </div>
-                                  <span className="text-[11px] font-mono text-[#8ca0ab]">
-                                    Компонент {idx + 1}
+                                  <span className="text-[10px] sm:text-[11px] font-mono text-[#8ca0ab]">
+                                    Слот {idx + 1}
                                   </span>
-                                  <span className="text-[9px] text-[#5e727e] mt-0.5">
-                                    Выберите в сумке
+                                  <span className="text-[8px] sm:text-[9px] text-[#5e727e] mt-0.5 hidden xs:inline sm:inline">
+                                    Из сумки
                                   </span>
                                 </>
                               )}
@@ -2435,7 +2450,7 @@ export function App() {
         </div>
 
         {/* RIGHT SIDEBAR: ALWAYS-ON JEI GRIMOIRE CODEX (4 cols) */}
-        <div className="lg:col-span-4 h-[760px] lg:h-[calc(100vh-92px)] lg:sticky lg:top-[76px]">
+        <div className="lg:col-span-4 h-[520px] lg:h-[calc(100vh-92px)] lg:sticky lg:top-[76px]">
           <JeiCodexSidebar
             itemsMap={itemsMap}
             discoveredItemIds={discoveredItemIds}
