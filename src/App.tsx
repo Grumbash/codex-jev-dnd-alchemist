@@ -80,6 +80,7 @@ import {
   checkUrlAuthParams,
 } from './utils/auth';
 import { sfx } from './utils/sound';
+import { useLanguage } from './context/LanguageContext';
 
 const STORAGE_KEY = 'dnd_jev_alchemist_guild_world_v2';
 
@@ -100,6 +101,9 @@ interface RollResultState {
 }
 
 export function App() {
+  const { lang, setLang, toggleLang, t, getItemName, getMonsterName, getRarityLabel, getElementName } =
+    useLanguage();
+
   // === CORE GAME STATE ===
   const [activeMainTab, setActiveMainTab] = useState<'crucible' | 'codex' | 'bestiary' | 'guild' | 'hero_raid'>('crucible');
   const [station, setStation] = useState<CraftingStation>('alchemist');
@@ -963,14 +967,14 @@ export function App() {
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <h1 className="font-display font-bold text-sm sm:text-lg tracking-wide text-[#f0ece3] truncate">
-                    МИР ГИЛЬДИЙ: <span className="text-[#d0ad77]">ТИГЕЛЬ</span>
+                    {t('brandTitle')} <span className="text-[#d0ad77]">{t('brandCrucible')}</span>
                   </h1>
                   <span className="hidden md:inline-flex px-1.5 py-0.2 rounded bg-[#162732] border border-[#c9aa72]/30 text-[#d0ad77] font-mono text-[9px]">
-                    Кампания «Монстры»
+                    {t('campaignSubtitle')}
                   </span>
                 </div>
                 <p className="text-[10px] sm:text-[11px] text-[#94a7b0] truncate">
-                  День {day} • Мыс Дальний Камень
+                  {t('dayPrefix')} {day} • {t('location')}
                 </p>
               </div>
             </div>
@@ -997,7 +1001,7 @@ export function App() {
           {/* Party Hero Centerpiece (Квик / Нокта / Слоу) */}
           <div className="w-full sm:w-auto rounded-xl bg-[#091116] border border-[#c9aa72]/30 p-1 flex items-center justify-between sm:justify-start gap-1 shadow-inner">
             <span className="text-[10px] font-mono uppercase text-[#7d929d] px-2 hidden md:inline">
-              Мастер:
+              {t('masterLabel')}
             </span>
             {GUILD_WORLD_HEROES.map((hero) => {
               const selected = hero.id === activeHeroId;
@@ -1032,13 +1036,9 @@ export function App() {
               onClick={() => {
                 const isPlaying = sfx.toggleAmbientSoundscape();
                 setIsAmbientPlaying(isPlaying);
-                showToast(
-                  isPlaying
-                    ? '🌊 Атмосферный эмбиент Мыса Дальний Камень включен (прибой океана и угли логова).'
-                    : '🔇 Эмбиент мыса выключен.'
-                );
+                showToast(isPlaying ? t('ambientToastOn') : t('ambientToastOff'));
               }}
-              title="Переключить атмосферный эмбиент Мыса Дальний Камень"
+              title={lang === 'en' ? 'Toggle Cape Far Stone ambient soundscape' : 'Переключить атмосферный эмбиент Мыса Дальний Камень'}
               className={`shrink-0 px-2.5 sm:px-3 py-1.5 rounded-xl border text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                 isAmbientPlaying
                   ? 'bg-cyan-950/70 border-cyan-400 text-cyan-200 shadow-[0_0_14px_rgba(6,182,212,0.3)]'
@@ -1049,7 +1049,7 @@ export function App() {
                 {isAmbientPlaying ? '🌊' : '🔇'}
               </span>
               <span className="hidden sm:inline">
-                {isAmbientPlaying ? 'Эмбиент: ВКЛ' : 'Эмбиент'}
+                {isAmbientPlaying ? t('ambientOn') : t('ambientOff')}
               </span>
             </button>
 
@@ -1059,7 +1059,7 @@ export function App() {
                 sfx.playClick();
                 setTabletopRollMode((prev) => !prev);
               }}
-              title="Переключить между виртуальным броском и вводом реального кубика d20 со стола"
+              title={lang === 'en' ? 'Toggle tabletop dice mode' : 'Переключить между виртуальным броском и вводом реального кубика d20 со стола'}
               className={`shrink-0 px-2.5 sm:px-3 py-1.5 rounded-xl border text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                 tabletopRollMode
                   ? 'bg-emerald-950/70 border-emerald-400 text-emerald-200 shadow-[0_0_14px_rgba(16,185,129,0.25)]'
@@ -1068,7 +1068,7 @@ export function App() {
             >
               <Dices className="w-3.5 h-3.5 text-[#d0ad77]" />
               <span className="hidden sm:inline">
-                {tabletopRollMode ? `🎯 Стол (${manualD20Roll})` : '🎲 Авто-d20'}
+                {tabletopRollMode ? t('tabletopManual', { val: manualD20Roll }) : t('tabletopAuto')}
               </span>
               <span className="sm:hidden font-mono">
                 {tabletopRollMode ? `🎯 ${manualD20Roll}` : '🎲'}
@@ -1081,7 +1081,7 @@ export function App() {
               <div>
                 <div className="flex items-center gap-1 text-[11px] sm:text-xs">
                   <span className="font-semibold text-[#f0ece3]">
-                    Ур.{alchemistLevel}
+                    {t('masteryLvl')}{alchemistLevel}
                   </span>
                   <span className="px-1 py-0.2 rounded bg-[#d0ad77]/15 text-[#e5cb94] font-mono text-[9px] font-bold">
                     +{proficiencyBonus}
@@ -1109,15 +1109,15 @@ export function App() {
                     {stamina}/{maxStamina}
                   </span>
                 </div>
-                <div className="text-[9px] text-[#8699a2]">Энергия</div>
+                <div className="text-[9px] text-[#8699a2]">{t('energyLabel')}</div>
               </div>
               <button
                 onClick={handleLongRest}
-                title="Долгий отдых на Дальнем Камне"
+                title={lang === 'en' ? 'Long rest in Far Stone' : 'Долгий отдых на Дальнем Камне'}
                 className="ml-1 px-2 py-0.5 rounded bg-[#1c2e39] hover:bg-[#253d4b] border border-[#c9aa72]/30 text-[#e5cb94] text-[10px] font-medium flex items-center gap-1 transition-colors cursor-pointer"
               >
                 <Moon className="w-2.5 h-2.5" />
-                <span>Отдых</span>
+                <span>{t('restButton')}</span>
               </button>
             </div>
 
@@ -1126,11 +1126,24 @@ export function App() {
               <span className="text-sm">🪙</span>
               <div>
                 <div className="font-mono font-bold text-xs text-[#e5cb94]">
-                  {gold} gp
+                  {gold} {t('goldSuffix')}
                 </div>
-                <div className="text-[9px] text-[#9cb0a8]">Казна</div>
+                <div className="text-[9px] text-[#9cb0a8]">{t('treasuryLabel')}</div>
               </div>
             </div>
+
+            {/* Language Toggle Badge */}
+            <button
+              onClick={() => {
+                sfx.playClick();
+                toggleLang();
+              }}
+              className="shrink-0 px-2.5 sm:px-3 py-1.5 rounded-xl border border-[#c9aa72]/50 bg-[#162732] hover:bg-[#1f3747] text-[#fbf7ee] text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+              title={lang === 'en' ? 'Switch to Russian / Переключить на русский' : 'Switch to English / Переключить на английский'}
+            >
+              <span className="text-sm">🌐</span>
+              <span className="text-[#d0ad77] uppercase font-bold">{lang.toUpperCase()}</span>
+            </button>
 
             {/* Access & Foundry VTT Links Button */}
             <button
@@ -1143,10 +1156,10 @@ export function App() {
                   ? 'bg-amber-950/60 border-amber-500/60 text-amber-300 shadow-md'
                   : 'bg-[#101b22] border-[#293d48] text-[#9cb0b9] hover:text-[#f0ece3]'
               }`}
-              title="Управление доступом и ссылками для Foundry VTT"
+              title={lang === 'en' ? 'Access Control & Foundry VTT Links' : 'Управление доступом и ссылками для Foundry VTT'}
             >
               <Shield className="w-3.5 h-3.5 text-amber-400" />
-              <span>{authSession?.role === 'gm' ? 'GM' : 'Foundry'}</span>
+              <span>{authSession?.role === 'gm' ? t('gmRole') : t('foundryBtn')}</span>
             </button>
 
             {/* DM Mode Button (GM Only) */}
@@ -1157,10 +1170,10 @@ export function App() {
                   setShowDmModal(true);
                 }}
                 className="shrink-0 px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#2a2215] to-[#1d1b2a] hover:from-[#3a2f1c] hover:to-[#28253b] border border-[#c9aa72]/60 text-xs font-display font-bold text-[#e5cb94] flex items-center gap-1 shadow-md cursor-pointer"
-                title="Открыть Панель Ведущего (выдача трофеев и создание монстров)"
+                title={lang === 'en' ? 'Open GM Master Panel' : 'Открыть Панель Ведущего (выдача трофеев и создание монстров)'}
               >
                 <Crown className="w-3.5 h-3.5 text-[#d0ad77]" />
-                <span className="hidden sm:inline">Режим ГМ</span>
+                <span className="hidden sm:inline">{t('gmMode')}</span>
               </button>
             )}
 
@@ -1173,13 +1186,30 @@ export function App() {
                     ? 'bg-[#1b2b35] border-[#c9aa72]/60 text-[#f0ece3]'
                     : 'bg-[#101b22] hover:bg-[#182730] border-[#293d48] text-[#94a7b0]'
                 }`}
-                title="Настройки интерфейса и звука"
+                title={t('settingsBtn')}
               >
                 <Settings className="w-4 h-4" />
               </button>
 
               {showSettingsMenu && (
                 <div className="absolute right-0 mt-2 w-56 rounded-xl bg-[#101b22] border border-[#c9aa72]/40 shadow-2xl p-2 z-50 space-y-1">
+                  {/* Language Selector in Menu */}
+                  <button
+                    onClick={() => {
+                      sfx.playClick();
+                      toggleLang();
+                    }}
+                    className="w-full px-3 py-2 rounded-lg text-left text-xs text-[#f0ece3] hover:bg-[#182832] flex items-center justify-between"
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="text-sm">🌐</span>
+                      <span>{t('language')}</span>
+                    </span>
+                    <span className="text-[10px] font-mono text-[#d0ad77] font-bold">
+                      {lang === 'en' ? 'English (EN)' : 'Русский (RU)'}
+                    </span>
+                  </button>
+
                   <button
                     onClick={() => {
                       setShowSettingsMenu(false);
@@ -1188,7 +1218,7 @@ export function App() {
                     className="w-full px-3 py-2 rounded-lg text-left text-xs font-mono text-[#d0ad77] hover:bg-[#182832] flex items-center gap-2"
                   >
                     <KeyRound className="w-3.5 h-3.5 text-[#d0ad77]" />
-                    <span>Ключ TypeSafe Jev SDK</span>
+                    <span>{t('sdkKey')}</span>
                   </button>
 
                   <button
@@ -1201,10 +1231,10 @@ export function App() {
                   >
                     <span className="flex items-center gap-2">
                       {soundEnabled ? <Volume2 className="w-3.5 h-3.5 text-emerald-400" /> : <VolumeX className="w-3.5 h-3.5 text-[#8699a2]" />}
-                      <span>Звуковые эффекты</span>
+                      <span>{t('soundEffects')}</span>
                     </span>
                     <span className="text-[10px] font-mono text-[#94a7b0]">
-                      {soundEnabled ? 'ВКЛ' : 'ВЫКЛ'}
+                      {soundEnabled ? t('statusOn') : t('statusOff')}
                     </span>
                   </button>
 
@@ -1212,20 +1242,16 @@ export function App() {
                     onClick={() => {
                       const isPlaying = sfx.toggleAmbientSoundscape();
                       setIsAmbientPlaying(isPlaying);
-                      showToast(
-                        isPlaying
-                          ? '🌊 Атмосферный эмбиент включен (прибой мыса).'
-                          : '🔇 Атмосферный эмбиент выключен.'
-                      );
+                      showToast(isPlaying ? t('ambientToastOn') : t('ambientToastOff'));
                     }}
                     className="w-full px-3 py-2 rounded-lg text-left text-xs text-[#f0ece3] hover:bg-[#182832] flex items-center justify-between"
                   >
                     <span className="flex items-center gap-2">
                       <span className="text-sm">🌊</span>
-                      <span>Эмбиент мыса</span>
+                      <span>{t('capeAmbient')}</span>
                     </span>
                     <span className="text-[10px] font-mono text-[#94a7b0]">
-                      {isAmbientPlaying ? 'ВКЛ' : 'ВЫКЛ'}
+                      {isAmbientPlaying ? t('statusOn') : t('statusOff')}
                     </span>
                   </button>
 
@@ -1238,7 +1264,7 @@ export function App() {
                       className="w-full px-3 py-2 rounded-lg text-left text-xs text-rose-300 hover:bg-rose-950/40 flex items-center gap-2"
                     >
                       <RotateCcw className="w-3.5 h-3.5" />
-                      <span>Сбросить прогресс</span>
+                      <span>{t('resetProgress')}</span>
                     </button>
                   </div>
                 </div>
@@ -1373,7 +1399,7 @@ export function App() {
               }`}
             >
               <Flame className="w-4 h-4 text-[#d0ad77] shrink-0" />
-              <span className="truncate">1. Тигель</span>
+              <span className="truncate">{t('tabCrucible')}</span>
             </button>
 
             <button
@@ -1388,7 +1414,7 @@ export function App() {
               }`}
             >
               <BookOpen className="w-4 h-4 text-[#e5cb94] shrink-0" />
-              <span className="truncate">2. Гримуар</span>
+              <span className="truncate">{t('tabCodex')}</span>
             </button>
 
             <button
@@ -1403,7 +1429,7 @@ export function App() {
               }`}
             >
               <Compass className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span className="truncate">3. Бестиарий ({allMonsters.length})</span>
+              <span className="truncate">{t('tabBestiary')} ({allMonsters.length})</span>
             </button>
 
             <button
@@ -1419,7 +1445,7 @@ export function App() {
             >
               <Swords className="w-4 h-4 text-rose-400 shrink-0" />
               <span className="truncate">
-                4. Отряд ({activeHero.name.split(' ')[0]})
+                {t('tabParty')} ({activeHero.name.split(' ')[0]})
               </span>
             </button>
 
@@ -1436,7 +1462,7 @@ export function App() {
             >
               <ShoppingBag className="w-4 h-4 text-[#d0ad77] shrink-0" />
               <span className="truncate">
-                5. Поручения ({bounties.filter((b) => !b.completed).length})
+                {t('tabBounties')} ({bounties.filter((b) => !b.completed).length})
               </span>
             </button>
           </div>
@@ -1557,10 +1583,10 @@ export function App() {
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#ffffff10] pb-4">
                   <div>
                     <h2 className="font-display font-bold text-base text-[#e5cb94]">
-                      Мастерская Дальнего Камня • Станок синтеза
+                      {t('workshopTitle')}
                     </h2>
                     <p className="text-xs text-[#8ca0ab]">
-                      Выбор станка задает матрицу архетипов <code className="text-[#d0ad77]">choice(itemArchetype)</code> для модели Jev
+                      {t('workshopSub')}
                     </p>
                   </div>
 
@@ -1568,20 +1594,20 @@ export function App() {
                     {[
                       {
                         id: 'alchemist',
-                        label: 'Алхимия',
-                        sub: 'Зелья, Яды, Мутагены',
+                        label: t('stationAlchemist'),
+                        sub: t('stationAlchemistSub'),
                         icon: <Flame className="w-4 h-4 text-emerald-400 shrink-0" />,
                       },
                       {
                         id: 'blacksmith',
-                        label: 'Кузня',
-                        sub: 'Клинки, Молоты, Латы',
+                        label: t('stationBlacksmith'),
+                        sub: t('stationBlacksmithSub'),
                         icon: <Hammer className="w-4 h-4 text-amber-400 shrink-0" />,
                       },
                       {
                         id: 'artificer',
-                        label: 'Артефакторика',
-                        sub: 'Кольца, Жезлы, Мантии',
+                        label: t('stationArtificer'),
+                        sub: t('stationArtificerSub'),
                         icon: <Wand2 className="w-4 h-4 text-purple-400 shrink-0" />,
                       },
                     ].map((st) => (
@@ -1614,12 +1640,12 @@ export function App() {
                         setShowAlembicModal(true);
                       }}
                       className="px-2.5 sm:px-3.5 py-2 rounded-xl border border-amber-500/50 bg-[#1e1710] hover:bg-[#2b1f14] text-amber-200 text-left transition-all flex items-center gap-2 cursor-pointer shadow-md"
-                      title="Открыть Перегонный куб Скрепа (Очиститель шлака и Великая Трансмутация)"
+                      title={lang === 'en' ? 'Open Skrep Alembic' : 'Открыть Перегонный куб Скрепа (Очиститель шлака и Великая Трансмутация)'}
                     >
                       <span className="text-lg sm:text-xl shrink-0">⚗️</span>
                       <div className="min-w-0">
                         <div className="text-xs font-bold leading-none flex items-center gap-1.5">
-                          <span className="truncate">Куб Скрепа</span>
+                          <span className="truncate">{t('stationSkrep')}</span>
                           {(inventory.alchemical_slag || 0) > 0 && (
                             <span className="px-1.5 py-0.2 rounded-full bg-amber-500/30 text-amber-300 text-[10px] font-mono shrink-0">
                               {inventory.alchemical_slag}
@@ -1627,7 +1653,7 @@ export function App() {
                           )}
                         </div>
                         <div className="text-[10px] text-amber-400/80 mt-0.5 hidden sm:block truncate">
-                          Шлак & Реликвии
+                          {t('stationSkrepSub')}
                         </div>
                       </div>
                     </button>
@@ -1646,7 +1672,7 @@ export function App() {
                     <div className="flex items-center justify-between text-xs font-mono text-[#8ca0ab] mb-3 px-1">
                       <span className="flex items-center gap-1.5 text-[#d0ad77]">
                         <Flame className="w-3.5 h-3.5" />
-                        <span>Чаша Горнила ({crucibleSlots.length}/{maxCrucibleSlots})</span>
+                        <span>{t('crucibleCauldronTitle')} ({crucibleSlots.length}/{maxCrucibleSlots})</span>
                       </span>
                       {crucibleSlots.length > 0 && (
                         <button
@@ -1654,7 +1680,7 @@ export function App() {
                           className="text-[11px] text-rose-300 hover:text-rose-200 flex items-center gap-1 cursor-pointer"
                         >
                           <Trash2 className="w-3 h-3" />
-                          <span>Очистить чашу</span>
+                          <span>{t('clearCauldronBtn')}</span>
                         </button>
                       )}
                     </div>
@@ -1690,10 +1716,10 @@ export function App() {
                                     <CompositeItemSprite item={item} size="sm" />
                                   </div>
                                   <span className="text-[10px] sm:text-[11px] font-semibold text-[#f0ece3] mt-1 sm:mt-2 line-clamp-1 sm:line-clamp-2 leading-tight">
-                                    {item.name}
+                                    {getItemName(item)}
                                   </span>
                                   <span className="text-[9px] font-mono text-[#d0ad77] mt-0.5 sm:mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    (убрать ✕)
+                                    {t('removeSlotHint')}
                                   </span>
                                 </>
                               ) : (
@@ -1702,10 +1728,10 @@ export function App() {
                                     {idx + 1}
                                   </div>
                                   <span className="text-[10px] sm:text-[11px] font-mono text-[#8ca0ab]">
-                                    Слот {idx + 1}
+                                    {t('componentSlot', { num: idx + 1 })}
                                   </span>
                                   <span className="text-[8px] sm:text-[9px] text-[#5e727e] mt-0.5 hidden xs:inline sm:inline">
-                                    Из сумки
+                                    {t('selectInBagHint')}
                                   </span>
                                 </>
                               )}
@@ -1846,10 +1872,10 @@ export function App() {
                         <Dices className="w-5 h-5" />
                         <span>
                           {isRolling
-                            ? 'Трансмутация...'
+                            ? t('synthesizingBtn')
                             : tabletopRollMode
-                            ? `Синтезировать (${manualD20Roll} + ${proficiencyBonus} = ${manualD20Roll + proficiencyBonus})`
-                            : `Синтезировать (d20 • 1⚡)`}
+                            ? `${lang === 'en' ? 'Synthesize' : 'Синтезировать'} (${manualD20Roll} + ${proficiencyBonus} = ${manualD20Roll + proficiencyBonus})`
+                            : `${lang === 'en' ? 'Synthesize (d20 • 1⚡)' : 'Синтезировать (d20 • 1⚡)'}`}
                         </span>
                       </button>
 
@@ -1858,17 +1884,17 @@ export function App() {
                         onClick={() => {
                           setD20ModalDc(crucibleItems.length >= 2 ? effectiveDc : undefined);
                           setD20ModalModifier(proficiencyBonus);
-                          setD20ModalTitle(`Синтез: ${activeHero.name}`);
+                          setD20ModalTitle(lang === 'en' ? `Synthesis: ${activeHero.name}` : `Синтез: ${activeHero.name}`);
                           setD20ModalSubtitle(
                             crucibleItems.length >= 2
-                              ? `Сложность синтеза СЛ: ${effectiveDc}`
-                              : 'Проверка ремесла d20'
+                              ? (lang === 'en' ? `Synthesis DC: ${effectiveDc}` : `Сложность синтеза СЛ: ${effectiveDc}`)
+                              : (lang === 'en' ? 'Craft check d20' : 'Проверка ремесла d20')
                           );
                           setD20ModalTargetResult(tabletopRollMode ? manualD20Roll : undefined);
                           setShowD20Modal(true);
                         }}
                         className="px-3.5 py-3.5 rounded-xl border border-amber-500/50 bg-[#162732] hover:bg-[#203644] text-amber-300 font-display font-bold text-xs flex items-center gap-1.5 shadow-md cursor-pointer transition-all"
-                        title="Открыть 3D-кубик судьбы Three.js"
+                        title="3D d20"
                       >
                         <span>🎲</span>
                         <span className="hidden sm:inline">3D d20</span>
@@ -1893,10 +1919,10 @@ export function App() {
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#ffffff10] pb-3">
                   <div>
                     <h3 className="font-display font-bold text-sm text-[#f0ece3]">
-                      Сумка Ремесленника Дальнего Камня
+                      {t('bagTitle')}
                     </h3>
                     <p className="text-[11px] text-[#8ca0ab]">
-                      Кликните на предмет, чтобы заложить его в чашу тигля
+                      {t('bagSub')}
                     </p>
                   </div>
 
@@ -1909,7 +1935,7 @@ export function App() {
                         type="text"
                         value={inventorySearch}
                         onChange={(e) => setInventorySearch(e.target.value)}
-                        placeholder="Поиск в сумке..."
+                        placeholder={t('searchBagPlaceholder')}
                         className="pl-8 pr-3 py-1 rounded-lg bg-[#0c151c] border border-[#233845] text-xs text-[#f0ece3] placeholder:text-[#657a87] focus:outline-none focus:border-[#d0ad77]/60"
                       />
                     </div>
@@ -1917,10 +1943,10 @@ export function App() {
                     {/* Category Buttons */}
                     <div className="flex items-center gap-1 rounded-lg bg-[#0c151c] border border-[#233845] p-0.5">
                       {[
-                        { id: 'all', label: 'Все' },
-                        { id: 'reagent', label: 'Трофеи' },
-                        { id: 'catalyst', label: 'Основы' },
-                        { id: 'crafted', label: 'Артефакты' },
+                        { id: 'all', label: t('filterAll') },
+                        { id: 'reagent', label: t('filterReagents') },
+                        { id: 'catalyst', label: t('filterCatalysts') },
+                        { id: 'crafted', label: t('filterCrafted') },
                       ].map((tab) => (
                         <button
                           key={tab.id}
@@ -1940,7 +1966,7 @@ export function App() {
 
                 {ownedInventoryItems.length === 0 ? (
                   <div className="rounded-xl border border-[#233845] bg-[#0c151c]/80 p-8 text-center space-y-2">
-                    <p className="text-sm text-[#8ca0ab]">Предметы не найдены в сумке</p>
+                    <p className="text-sm text-[#8ca0ab]">{t('emptyBagMsg')}</p>
                     <button
                       onClick={() => {
                         setInventoryFilter('all');
@@ -1949,7 +1975,7 @@ export function App() {
                       }}
                       className="px-4 py-2 rounded-xl bg-[#192b36] border border-[#c9aa72]/40 text-[#e5cb94] text-xs font-semibold cursor-pointer"
                     >
-                      Отправиться на охоту в Бестиарий →
+                      {lang === 'en' ? 'Hunt in Bestiary →' : 'Отправиться на охоту в Бестиарий →'}
                     </button>
                   </div>
                 ) : (
@@ -1990,7 +2016,7 @@ export function App() {
                                     setSelectedJeiItemId(item.id);
                                     setJeiTab('uses');
                                   }}
-                                  title="Показать в Гримуаре JEI"
+                                  title="JEI"
                                   className="px-1.5 py-0.5 rounded bg-[#182935] hover:bg-[#22394a] text-[9px] font-mono text-[#d0ad77] border border-[#c9aa72]/30"
                                 >
                                   JEI
@@ -2002,7 +2028,7 @@ export function App() {
                                         e.stopPropagation();
                                         setHaggleItem(item);
                                       }}
-                                      title="Торговаться с NPC-скупщиком (Jev)"
+                                      title={lang === 'en' ? 'Haggle with merchant' : 'Торговаться с NPC-скупщиком (Jev)'}
                                       className="p-1 rounded bg-[#182935] hover:bg-emerald-950 text-emerald-300 border border-[#203442]"
                                     >
                                       <Handshake className="w-3 h-3" />
@@ -2012,7 +2038,7 @@ export function App() {
                                         e.stopPropagation();
                                         setInspectedItem(item);
                                       }}
-                                      title="Открыть 3D-модель и D&D Статблок"
+                                      title={lang === 'en' ? 'Open 3D model & D&D Statblock' : 'Открыть 3D-модель и D&D Статблок'}
                                       className="p-1 rounded bg-[#182935] hover:bg-[#22394a] text-[#f0ece3] border border-[#203442]"
                                     >
                                       <Eye className="w-3 h-3" />
@@ -2026,18 +2052,18 @@ export function App() {
                           {/* Item Meta info */}
                           <div className="mt-2.5">
                             <div className="text-xs font-semibold text-[#f0ece3] line-clamp-1">
-                              {item.name}
+                              {getItemName(item)}
                             </div>
                             <div className="flex items-center justify-between mt-1 text-[10px] font-mono">
                               <span className={rarity.text}>
-                                {rarity.label}
+                                {getRarityLabel(item.rarity)}
                                 {item.craftGeneration && item.craftGeneration >= 2
                                   ? ` • T${item.craftGeneration}`
                                   : ''}
                               </span>
                               {inCrucible > 0 && (
                                 <span className="text-[#d0ad77] font-semibold">
-                                  ({inCrucible} в котле)
+                                  {lang === 'en' ? `(${inCrucible} in crucible)` : `(${inCrucible} в котле)`}
                                 </span>
                               )}
                             </div>
@@ -2083,14 +2109,18 @@ export function App() {
               <div className="rounded-2xl border border-[#c9aa72]/25 bg-[#101b22] p-4 flex flex-wrap items-center justify-between gap-3 shadow-xl">
                 <div>
                   <h2 className="font-display font-bold text-base text-emerald-300">
-                    Бестиарий «Мира Гильдий»: Охота и разделка ({activeHero.name})
+                    {lang === 'en'
+                      ? `«Guild World» Bestiary: Hunting & Harvesting (${activeHero.name})`
+                      : `Бестиарий «Мира Гильдий»: Охота и разделка (${activeHero.name})`}
                   </h2>
                   <p className="text-xs text-[#8ca0ab]">
-                    Выберите существо и совершите проверку <code className="text-[#e5cb94]">{tabletopRollMode ? `d20(${manualD20Roll})` : 'd20'} + {Math.max(proficiencyBonus, activeHero.harvestBonus) + (hasUpgrade('harvest_bonus_2') ? 2 : 0)}</code>. Вы получаете все трофеи, чей порог СЛ пробит!
+                    {lang === 'en'
+                      ? `Select a creature and make a harvest check. You receive all trophies whose DC threshold is beaten!`
+                      : `Выберите существо и совершите проверку. Вы получаете все трофеи, чей порог СЛ пробит!`}
                   </p>
                 </div>
                 <div className="text-xs font-mono text-[#f0ece3] bg-[#0c161d] px-3 py-1.5 rounded-xl border border-[#213543]">
-                  Модификатор ({activeHero.name.split(' ')[0]}):{' '}
+                  {lang === 'en' ? 'Modifier' : 'Модификатор'} ({activeHero.name.split(' ')[0]}):{' '}
                   <strong className="text-emerald-400">
                     +{Math.max(proficiencyBonus, activeHero.harvestBonus) + (hasUpgrade('harvest_bonus_2') ? 2 : 0)}
                   </strong>
@@ -2120,7 +2150,7 @@ export function App() {
                             <div>
                               <div className="flex items-center gap-2">
                                 <h3 className="font-display font-bold text-sm text-[#f0ece3]">
-                                  {monster.name}
+                                  {getMonsterName(monster)}
                                 </h3>
                                 <span className="px-2 py-0.5 rounded bg-[#0b141a] border border-[#213543] font-mono text-[10px] text-[#e5cb94]">
                                   {monster.crDisplay}
@@ -2144,7 +2174,7 @@ export function App() {
                         {/* Monster Anatomical Drops Table */}
                         <div className="mt-3 space-y-1.5">
                           <div className="text-[10px] font-mono uppercase text-[#8ca0ab]">
-                            Анатомическая карта трофеев (клик — открыть в JEI):
+                            {lang === 'en' ? 'Anatomical Trophy Map (click — open in JEI):' : 'Анатомическая карта трофеев (клик — открыть в JEI):'}
                           </div>
                           {monster.drops.map((drop) => {
                             const dropItem = itemsMap[drop.itemId];
@@ -2164,7 +2194,7 @@ export function App() {
                                 <div className="flex items-center gap-2 min-w-0">
                                   <CompositeItemSprite item={dropItem} size="sm" />
                                   <span className={`text-xs font-medium truncate ${rarity.text}`}>
-                                    {dropItem.name}
+                                    {getItemName(dropItem)}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 shrink-0 font-mono text-[10px]">
@@ -2174,7 +2204,7 @@ export function App() {
                                     </span>
                                   )}
                                   <span className="px-1.5 py-0.5 rounded bg-[#091117] border border-[#213543] text-[#e5cb94]">
-                                    СЛ {drop.dc}
+                                    {t('dcLabel')} {drop.dc}
                                   </span>
                                 </div>
                               </div>
@@ -2192,13 +2222,15 @@ export function App() {
                             : 'bg-[#152a22] hover:bg-[#1d3d31] border border-emerald-500/50 text-emerald-200'
                         }`}
                       >
-                        <Dices className="w-4 h-4" />
+                        <span className="text-base">🔪</span>
                         <span>
                           {locked
-                            ? `Требуется Уровень Мастерства ${monster.minAlchemistLevel}`
+                            ? (lang === 'en' ? `Requires Mastery Level ${monster.minAlchemistLevel}` : `Требуется Уровень Мастерства ${monster.minAlchemistLevel}`)
+                            : isRolling
+                            ? (lang === 'en' ? 'Hunting & Harvesting...' : 'Охота и разделка...')
                             : tabletopRollMode
-                            ? `Разделать со стола (d20=${manualD20Roll} • ${monster.staminaCost}⚡)`
-                            : `Выследить и разделать (Бросок d20 • ${monster.staminaCost}⚡)`}
+                            ? (lang === 'en' ? `Harvest with table roll (${manualD20Roll} • -${monster.staminaCost}⚡)` : `Разделать по кубику со стола (${manualD20Roll} • -${monster.staminaCost}⚡)`)
+                            : (lang === 'en' ? `Fast Harvest (-${monster.staminaCost}⚡ • Roll d20)` : `Быстрая охота и разделка (-${monster.staminaCost}⚡ • Бросить d20)`)}
                         </span>
                       </button>
                     </div>

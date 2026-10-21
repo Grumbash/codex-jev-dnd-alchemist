@@ -18,6 +18,7 @@ import {
 import { GameItem } from '../types/game';
 import { ELEMENT_META, RARITY_META } from '../data/bestiary';
 import { CompositeItemSprite } from './CompositeItemSprite';
+import { useLanguage } from '../context/LanguageContext';
 
 interface ItemStatblockModalProps {
   item: GameItem | null;
@@ -40,6 +41,7 @@ export const ItemStatblockModal: React.FC<ItemStatblockModalProps> = ({
   onOpenHaggle,
   onApplyBuff,
 }) => {
+  const { lang, getItemName, getRarityLabel, getElementLabel } = useLanguage();
   const [copied, setCopied] = useState(false);
   const [yawDeg, setYawDeg] = useState(0);
   const [pitchDeg, setPitchDeg] = useState(0);
@@ -372,28 +374,29 @@ export const ItemStatblockModal: React.FC<ItemStatblockModalProps> = ({
               <span
                 className={`px-2 py-0.5 rounded text-[11px] font-mono uppercase font-bold border ${rarity.bg} ${rarity.border} ${rarity.text}`}
               >
-                {rarity.label} ({rarity.labelEn})
+                {lang === 'en' ? rarity.labelEn : `${rarity.label} (${rarity.labelEn})`}
               </span>
               {item.craftGeneration && item.craftGeneration >= 2 && (
                 <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-fuchsia-500/20 border border-fuchsia-400/60 text-fuchsia-300 flex items-center gap-1">
-                  <Flame className="w-3 h-3" /> Синтез Тир-{item.craftGeneration}
+                  <Flame className="w-3 h-3" /> {lang === 'en' ? `Synthesis Tier-${item.craftGeneration}` : `Синтез Тир-${item.craftGeneration}`}
                 </span>
               )}
               {item.isMasterwork && (
                 <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-amber-500/20 border border-amber-400/50 text-amber-300 flex items-center gap-1">
-                  <Sparkles className="w-3 h-3" /> Шедевр (Nat 20)
+                  <Sparkles className="w-3 h-3" /> {lang === 'en' ? 'Masterwork (Nat 20)' : 'Шедевр (Nat 20)'}
                 </span>
               )}
             </div>
             <h2 className="font-display font-bold text-lg text-amber-100 mt-1.5 leading-snug">
-              {item.name}
+              {getItemName(item)}
             </h2>
             <p className="text-xs font-mono text-stone-400 italic">
-              {stats?.typeLine || item.nameEn}
+              {stats?.typeLine || (lang === 'en' ? item.name : item.nameEn)}
             </p>
             {item.parentItemNames && item.parentItemNames.length > 0 && (
               <p className="text-[11px] font-mono text-fuchsia-300/90 mt-1">
-                ⚗️ Сплав: {item.parentItemNames.join(' + ')}
+                {lang === 'en' ? '⚗️ Alloy: ' : '⚗️ Сплав: '}
+                {item.parentItemNames.join(' + ')}
               </p>
             )}
           </div>
@@ -413,7 +416,7 @@ export const ItemStatblockModal: React.FC<ItemStatblockModalProps> = ({
                   className={`px-2.5 py-1 rounded-lg text-xs font-medium border ${m.bg} ${m.border} ${m.color} flex items-center gap-1.5`}
                 >
                   <span>{m.emoji}</span>
-                  <span>Стихия: {m.label}</span>
+                  <span>{lang === 'en' ? `Element: ${getElementLabel(el)}` : `Стихия: ${m.label}`}</span>
                 </span>
               );
             })}
