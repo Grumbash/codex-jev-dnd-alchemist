@@ -12,6 +12,11 @@ import {
   GUILD_WORLD_MONSTERS,
   GUILD_WORLD_UPGRADES,
 } from './guildWorldCampaign';
+import {
+  EXPANDED_ITEMS,
+  EXPANDED_MONSTERS,
+  EXPANDED_SHOP_CATALYST_IDS,
+} from './expandedBestiary';
 
 export const ELEMENT_META: Record<
   ElementType,
@@ -182,9 +187,9 @@ export const MONSTERS: Monster[] = [
     accentColor: 'from-lime-500/20 to-emerald-950/30',
     lore: 'Бесшумный прозрачный куб едкой протоплазмы, вычищающий коридоры подземелий от плоти, оставляя лишь металл и кости.',
     drops: [
-      { tier: 'common', dc: 8, itemId: 'cube_acid_ooze' },
-      { tier: 'rare', dc: 13, itemId: 'cube_membrane' },
-      { tier: 'legendary', dc: 17, itemId: 'cube_dissolution_nucleus' },
+      { tier: 'common', dc: 11, itemId: 'cube_acid_ooze' },
+      { tier: 'rare', dc: 14, itemId: 'cube_membrane' },
+      { tier: 'legendary', dc: 18, itemId: 'cube_dissolution_nucleus' },
     ],
   },
   {
@@ -201,8 +206,8 @@ export const MONSTERS: Monster[] = [
     accentColor: 'from-amber-600/20 to-purple-950/30',
     lore: 'Хищный аморфный полиморф, способный имитировать дубовые сундуки, двери и золотую утварь ради засады.',
     drops: [
-      { tier: 'common', dc: 8, itemId: 'mimic_toothed_splinter' },
-      { tier: 'rare', dc: 13, itemId: 'mimic_adhesive_gland' },
+      { tier: 'common', dc: 11, itemId: 'mimic_toothed_splinter' },
+      { tier: 'rare', dc: 14, itemId: 'mimic_adhesive_gland' },
       { tier: 'legendary', dc: 18, itemId: 'mimic_morph_tongue' },
     ],
   },
@@ -220,9 +225,9 @@ export const MONSTERS: Monster[] = [
     accentColor: 'from-indigo-500/20 to-violet-950/30',
     lore: 'Шестилапая черная пантера с парой шипастых щупалец на плечах, чья шкура преломляет свет и смещает силуэт в пространстве.',
     drops: [
-      { tier: 'common', dc: 9, itemId: 'displacer_shimmer_hide' },
-      { tier: 'rare', dc: 14, itemId: 'displacer_barbed_tentacle' },
-      { tier: 'legendary', dc: 18, itemId: 'displacer_phase_node' },
+      { tier: 'common', dc: 12, itemId: 'displacer_shimmer_hide' },
+      { tier: 'rare', dc: 15, itemId: 'displacer_barbed_tentacle' },
+      { tier: 'legendary', dc: 19, itemId: 'displacer_phase_node' },
     ],
   },
   {
@@ -239,9 +244,9 @@ export const MONSTERS: Monster[] = [
     accentColor: 'from-emerald-600/20 to-stone-900/40',
     lore: 'Восьмилапая рептилия со светящимися бледно-зелеными глазами, чей взгляд мгновенно обращает живую плоть в пористый камень.',
     drops: [
-      { tier: 'common', dc: 9, itemId: 'basilisk_stone_scale' },
-      { tier: 'rare', dc: 14, itemId: 'basilisk_gullet' },
-      { tier: 'legendary', dc: 18, itemId: 'basilisk_petrifying_lens' },
+      { tier: 'common', dc: 12, itemId: 'basilisk_stone_scale' },
+      { tier: 'rare', dc: 15, itemId: 'basilisk_gullet' },
+      { tier: 'legendary', dc: 19, itemId: 'basilisk_petrifying_lens' },
     ],
   },
   {
@@ -258,9 +263,9 @@ export const MONSTERS: Monster[] = [
     accentColor: 'from-red-500/20 to-amber-950/30',
     lore: 'Крылатый хищник с львиным торсом и хвостом, стреляющим веером зазубренных ядовитых игл.',
     drops: [
-      { tier: 'common', dc: 9, itemId: 'manticore_tail_spike' },
-      { tier: 'rare', dc: 14, itemId: 'manticore_venom_sac' },
-      { tier: 'legendary', dc: 18, itemId: 'manticore_storm_wing' },
+      { tier: 'common', dc: 12, itemId: 'manticore_tail_spike' },
+      { tier: 'rare', dc: 15, itemId: 'manticore_venom_sac' },
+      { tier: 'legendary', dc: 19, itemId: 'manticore_storm_wing' },
     ],
   },
   {
@@ -277,8 +282,8 @@ export const MONSTERS: Monster[] = [
     accentColor: 'from-green-600/20 to-lime-950/30',
     lore: 'Мутировавший тролль, чья плоть непрерывно срастается и брызжет токсичной кровью при каждом рассечении.',
     drops: [
-      { tier: 'common', dc: 11, itemId: 'troll_regen_blood' },
-      { tier: 'rare', dc: 15, itemId: 'troll_caustic_marrow' },
+      { tier: 'common', dc: 13, itemId: 'troll_regen_blood' },
+      { tier: 'rare', dc: 16, itemId: 'troll_caustic_marrow' },
       { tier: 'legendary', dc: 20, itemId: 'troll_immortal_heart' },
     ],
   },
@@ -296,9 +301,9 @@ export const MONSTERS: Monster[] = [
     accentColor: 'from-pink-500/20 to-purple-950/40',
     lore: 'Тиран Подземья с головой осьминога, подчиняющий разум псионическими импульсами и питающийся интеллектом разумных существ.',
     drops: [
-      { tier: 'common', dc: 11, itemId: 'illithid_cranial_tentacle' },
-      { tier: 'rare', dc: 16, itemId: 'illithid_cerebral_fluid' },
-      { tier: 'legendary', dc: 20, itemId: 'illithid_psionic_cortex' },
+      { tier: 'common', dc: 14, itemId: 'illithid_cranial_tentacle' },
+      { tier: 'rare', dc: 17, itemId: 'illithid_cerebral_fluid' },
+      { tier: 'legendary', dc: 21, itemId: 'illithid_psionic_cortex' },
     ],
   },
   {
@@ -315,9 +320,9 @@ export const MONSTERS: Monster[] = [
     accentColor: 'from-purple-500/25 to-indigo-950/40',
     lore: 'Парящая сфера параноидального гения, окруженная десятью глазными стеблями разрушительных лучей и центральным оком, гасящим любую магию.',
     drops: [
-      { tier: 'common', dc: 13, itemId: 'beholder_chitin_plate' },
-      { tier: 'rare', dc: 17, itemId: 'beholder_ray_stalk' },
-      { tier: 'legendary', dc: 22, itemId: 'beholder_antimagic_eye' },
+      { tier: 'common', dc: 15, itemId: 'beholder_chitin_plate' },
+      { tier: 'rare', dc: 19, itemId: 'beholder_ray_stalk' },
+      { tier: 'legendary', dc: 23, itemId: 'beholder_antimagic_eye' },
     ],
   },
   {
@@ -334,9 +339,9 @@ export const MONSTERS: Monster[] = [
     accentColor: 'from-violet-600/25 to-slate-950/50',
     lore: 'Верховный маг, обретший бессмертие через привязку души к рунной филактерии. Повелевает холодом могилы и распадом материи.',
     drops: [
-      { tier: 'common', dc: 14, itemId: 'lich_grave_dust' },
-      { tier: 'rare', dc: 18, itemId: 'lich_soul_ectoplasm' },
-      { tier: 'legendary', dc: 23, itemId: 'lich_phylactery_shard' },
+      { tier: 'common', dc: 17, itemId: 'lich_grave_dust' },
+      { tier: 'rare', dc: 21, itemId: 'lich_soul_ectoplasm' },
+      { tier: 'legendary', dc: 25, itemId: 'lich_phylactery_shard' },
     ],
   },
   {
@@ -348,16 +353,17 @@ export const MONSTERS: Monster[] = [
     creatureType: 'Дракон (Dragon)',
     biome: 'Кальдера Вулкан-Горы',
     staminaCost: 3,
-    minAlchemistLevel: 4,
+    minAlchemistLevel: 5,
     icon: '🐉',
     accentColor: 'from-orange-500/30 to-red-950/50',
     lore: 'Воплощение первородного пламени и алчности. Его чешуя крепче адамантина, а дыхание плавит замковые стены.',
     drops: [
-      { tier: 'common', dc: 14, itemId: 'dragon_scorched_claw' },
-      { tier: 'rare', dc: 19, itemId: 'dragon_ruby_scale' },
-      { tier: 'legendary', dc: 24, itemId: 'dragon_inferno_gland' },
+      { tier: 'common', dc: 18, itemId: 'dragon_scorched_claw' },
+      { tier: 'rare', dc: 22, itemId: 'dragon_ruby_scale' },
+      { tier: 'legendary', dc: 26, itemId: 'dragon_inferno_gland' },
     ],
   },
+  ...EXPANDED_MONSTERS,
 ];
 
 export const INITIAL_ITEMS: Record<string, GameItem> = {
@@ -928,6 +934,7 @@ export const INITIAL_ITEMS: Record<string, GameItem> = {
     description: 'Спекшаяся шипящая масса после неудачного синтеза. Ходят слухи, что безумцы варят из неё взрывчатку.',
   },
   ...GUILD_WORLD_ITEMS,
+  ...EXPANDED_ITEMS,
 };
 
 export const SHOP_CATALYST_IDS = [
@@ -935,6 +942,7 @@ export const SHOP_CATALYST_IDS = [
   'catalyst_mithral_ingot',
   'catalyst_silver_ring',
   'catalyst_elder_parchment',
+  ...EXPANDED_SHOP_CATALYST_IDS,
 ];
 
 export const INITIAL_UPGRADES: WorkshopUpgrade[] = GUILD_WORLD_UPGRADES;

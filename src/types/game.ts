@@ -222,3 +222,33 @@ export interface DailyLairEvent {
   bonusItemId?: string;
   bonusValue?: number;
 }
+
+export interface JevRaidTelemetry {
+  source: 'live-jev' | 'nar-calibrated-sim';
+  latencyMs: number;
+  winProbability: {
+    noul: number; // 0..1 calibrated probability of raid victory
+  };
+  ambushRisk: {
+    noul: number; // 0..1 probability of monster ambush / lair counter-strike
+  };
+  monsterTactic: {
+    choice:
+      | 'frenzied_assault'
+      | 'lair_ambush'
+      | 'arcane_barrage'
+      | 'regenerative_stall'
+      | 'soul_drain';
+    probabilities: Record<string, number>;
+  };
+  battlefieldHazard: {
+    choice: 'caustic_mist' | 'unstable_leyline' | 'blood_frenzy' | 'clear_sanctum';
+    probabilities: Record<string, number>;
+  };
+  organPreservation: {
+    score: number; // 1..5 anatomical preservation score
+  };
+  tacticalSummaryRu: string;
+  tacticalSummaryEn: string;
+}
+

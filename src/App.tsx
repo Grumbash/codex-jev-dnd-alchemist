@@ -196,14 +196,32 @@ export function App() {
   const [inventorySearch, setInventorySearch] = useState<string>('');
   const [showSettingsMenu, setShowSettingsMenu] = useState<boolean>(false);
 
+  // === TARGET BLUEPRINT / ARCHETYPE SELECTION (CRUCIBLE) ===
+  const [targetArchetype, setTargetArchetype] = useState<string>('auto');
+
+  // === PERSISTENT HERO HEALTH & WOUNDS (D&D 5E STAKES) ===
+  const [heroHpMap, setHeroHpMap] = useState<Record<PartyHeroProfile['id'], number>>({
+    quick: 201,
+    nocta: 115,
+    slow: 186,
+  });
+  const [heroWoundsMap, setHeroWoundsMap] = useState<Record<PartyHeroProfile['id'], number>>({
+    quick: 0,
+    nocta: 0,
+    slow: 0,
+  });
+
   // === FEATURES 5 & 3: AMBIENT SOUNDSCAPE, 3D D20 & SLAG ALEMBIC ===
   const [isAmbientPlaying, setIsAmbientPlaying] = useState<boolean>(false);
   const [showD20Modal, setShowD20Modal] = useState<boolean>(false);
+  const [locked3dRoll, setLocked3dRoll] = useState<number | null>(null);
   const [d20ModalTargetResult, setD20ModalTargetResult] = useState<number | undefined>(undefined);
   const [d20ModalDc, setD20ModalDc] = useState<number | undefined>(undefined);
   const [d20ModalModifier, setD20ModalModifier] = useState<number>(0);
   const [d20ModalTitle, setD20ModalTitle] = useState<string>('Бросок d20 Судьбы');
   const [d20ModalSubtitle, setD20ModalSubtitle] = useState<string>('Мыс Дальний Камень');
+  const [d20ModalActionLabel, setD20ModalActionLabel] = useState<string | undefined>(undefined);
+  const [d20ModalConfirmCallback, setD20ModalConfirmCallback] = useState<((rolled: number) => void) | null>(null);
   const [showAlembicModal, setShowAlembicModal] = useState<boolean>(false);
 
   // === ACCESS CONTROL & FOUNDRY VTT GATE ===
@@ -385,6 +403,7 @@ export function App() {
     evaluateCrucibleWithJev(station, crucibleItems, {
       useLiveApi: useLiveJev,
       apiKey: customApiKey || undefined,
+      preferredArchetype: targetArchetype !== 'auto' ? targetArchetype : undefined,
     }).then((res) => {
       if (!cancelled) {
         setTelemetry(res);
@@ -395,7 +414,7 @@ export function App() {
     return () => {
       cancelled = true;
     };
-  }, [crucibleSlots, station, useLiveJev, customApiKey]);
+  }, [crucibleSlots, station, useLiveJev, customApiKey, targetArchetype]);
 
   // === INVENTORY & CRUCIBLE HELPERS ===
   const markDiscovered = (ids: string[]) => {
@@ -449,8 +468,16 @@ export function App() {
   };
 
   // === SYNTHESIZE (ROLL D20 AGAINST JEV DC) ===
-  const handleSynthesize = () => {
+  const handleSynthesize = (forcedD20?: number) => {
     if (crucibleItems.length < 2 || !telemetry || isRolling) return;
+    if (stamina <= 0) {
+      showToast(
+        lang === 'en'
+          ? 'Exhausted! Rest in the Bastion to restore stamina.'
+          : 'Истощение! Отдохните в Бастионе для восстановления выносливости.'
+      );
+      return;
+    }
     if (station === 'alchemist') {
       sfx.playCauldronBubble();
     } else if (station === 'blacksmith') {
@@ -461,12 +488,18 @@ export function App() {
     sfx.playDiceRoll();
     setIsRolling(true);
 
+    const activeRoll = forcedD20 ?? locked3dRoll ?? undefined;
+    setLocked3dRoll(null);
+
     setTimeout(() => {
-      const r1 = tabletopRollMode
-        ? Math.max(1, Math.min(20, manualD20Roll))
-        : Math.floor(Math.random() * 20) + 1;
-      const r2 = tabletopRollMode ? r1 : Math.floor(Math.random() * 20) + 1;
-      const d20Raw = isExhausted && !tabletopRollMode ? Math.min(r1, r2) : r1;
+      const r1 =
+        activeRoll !== undefined
+          ? activeRoll
+          : tabletopRollMode
+            ? Math.max(1, Math.min(20, manualD20Roll))
+            : Math.floor(Math.random() * 20) + 1;
+      const r2 = tabletopRollMode || activeRoll !== undefined ? r1 : Math.floor(Math.random() * 20) + 1;
+      const d20Raw = isExhausted && !tabletopRollMode && activeRoll === undefined ? Math.min(r1, r2) : r1;
       const total = d20Raw + proficiencyBonus;
 
       // Consume stamina (can drop to 0)
@@ -523,8 +556,14 @@ export function App() {
         return;
       }
 
-      // Assemble the crafted D&D item
-      const crafted = assembleCraftedItem(station, crucibleItems, telemetry, outcome);
+      // Assemble the crafted D&D item with target archetype
+      const crafted = assembleCraftedItem(
+        station,
+        crucibleItems,
+        telemetry,
+        outcome,
+        targetArchetype !== 'auto' ? targetArchetype : undefined
+      );
       const rKey = makeRecipeKey(station, crucibleItems);
       const isFirst = !recipes[rKey];
 
@@ -587,24 +626,43 @@ export function App() {
   };
 
   // === FAST HARVEST IN BESTIARY ===
-  const handleHarvestMonster = (monsterId: string) => {
+  const handleHarvestMonster = (monsterId: string, forcedD20?: number) => {
     const monster = allMonsters.find((m) => m.id === monsterId);
     if (!monster || isRolling) return;
 
+    if (stamina < monster.staminaCost) {
+      showToast(
+        lang === 'en'
+          ? `Not enough stamina (${monster.staminaCost}⚡ required)! Rest at the Tavern.`
+          : `Не хватает выносливости (${monster.staminaCost}⚡)! Отдохните в Таверне.`
+      );
+      return;
+    }
+
     if (alchemistLevel < monster.minAlchemistLevel) {
-      showToast(`Требуется Уровень Мастерства ${monster.minAlchemistLevel} для охоты на ${monster.name}!`);
+      showToast(
+        lang === 'en'
+          ? `Requires Mastery Level ${monster.minAlchemistLevel} to hunt ${monster.nameEn || monster.name}!`
+          : `Требуется Уровень Мастерства ${monster.minAlchemistLevel} для охоты на ${monster.name}!`
+      );
       return;
     }
 
     sfx.playDiceRoll();
     setIsRolling(true);
 
+    const activeRoll = forcedD20 ?? locked3dRoll ?? undefined;
+    setLocked3dRoll(null);
+
     setTimeout(() => {
-      const r1 = tabletopRollMode
-        ? Math.max(1, Math.min(20, manualD20Roll))
-        : Math.floor(Math.random() * 20) + 1;
-      const r2 = tabletopRollMode ? r1 : Math.floor(Math.random() * 20) + 1;
-      const d20Raw = isExhausted && !tabletopRollMode ? Math.min(r1, r2) : r1;
+      const r1 =
+        activeRoll !== undefined
+          ? activeRoll
+          : tabletopRollMode
+            ? Math.max(1, Math.min(20, manualD20Roll))
+            : Math.floor(Math.random() * 20) + 1;
+      const r2 = tabletopRollMode || activeRoll !== undefined ? r1 : Math.floor(Math.random() * 20) + 1;
+      const d20Raw = isExhausted && !tabletopRollMode && activeRoll === undefined ? Math.min(r1, r2) : r1;
       const scalpelBonus = hasUpgrade('harvest_bonus_2') ? 2 : 0;
       const harvestMod = Math.max(proficiencyBonus, activeHero.harvestBonus);
       const total = d20Raw + harvestMod + scalpelBonus;
@@ -619,12 +677,6 @@ export function App() {
             if (it) harvested.push(it);
           }
         });
-      }
-
-      // Even on low roll (unless Nat 1), give at least the common drop if within 2 points
-      if (harvested.length === 0 && d20Raw !== 1) {
-        const commonItem = itemsMap[monster.drops[0].itemId];
-        if (commonItem) harvested.push(commonItem);
       }
 
       if (harvested.length > 0) {
@@ -646,7 +698,7 @@ export function App() {
           proficiencyBonus: harvestMod,
           extraBonus: scalpelBonus,
           total,
-          dc: monster.drops[1].dc,
+          dc: monster.drops[0].dc,
           outcome: 'harvest_success',
           title: `🐉 Разделка (${activeHero.name}): ${monster.name}`,
           subtitle: `Добыто трофеев: ${harvested.map((h) => h.name).join(', ')}`,
@@ -654,6 +706,12 @@ export function App() {
         });
       } else {
         sfx.playFail();
+        const counterDamage = Math.max(6, Math.round(monster.cr * 3.5));
+        setHeroHpMap((prev) => ({
+          ...prev,
+          [activeHero.id]: Math.max(10, (prev[activeHero.id] ?? activeHero.baseHp) - counterDamage),
+        }));
+
         setLastRoll({
           context: 'harvest',
           d20Raw,
@@ -663,8 +721,8 @@ export function App() {
           total,
           dc: monster.drops[0].dc,
           outcome: 'harvest_fail',
-          title: `💥 Критический провал охоты (Nat 1)!`,
-          subtitle: `${monster.name} ранил вас при отступлении. Трофеи испорчены.`,
+          title: d20Raw === 1 ? `💥 Критический провал охоты (Nat 1)!` : `❌ Неудача разделки (${total} vs СЛ ${monster.drops[0].dc})`,
+          subtitle: `${monster.name} ранил героя ${activeHero.name} на ${counterDamage} HP и скрылся. Трофеи потеряны.`,
         });
       }
 
@@ -1660,6 +1718,73 @@ export function App() {
                   </div>
                 </div>
 
+                {/* TARGET BLUEPRINT / ITEM FORM SELECTOR (Пояс, Зелье, Бомба, Меч, и др.) */}
+                <div className="rounded-xl bg-[#0b141a] border border-[#c9aa72]/20 p-2.5 sm:p-3 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono font-bold text-[#d0ad77] uppercase flex items-center gap-1.5">
+                      <span>🎯</span>
+                      <span>{lang === 'en' ? 'Target Blueprint:' : 'Желаемый предмет:'}</span>
+                    </span>
+                    <span className="text-[11px] text-[#8ca0ab] hidden sm:inline">
+                      {lang === 'en'
+                        ? 'Select what item archetype you want the Crucible to forge'
+                        : 'Выберите конкретный тип вещи для синтеза в тигле'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 overflow-x-auto max-w-full pb-1 sm:pb-0">
+                    {[
+                      { id: 'auto', label: lang === 'en' ? '✦ Auto (Jev AI)' : '✦ Авто (ИИ Jev)', icon: '🔮' },
+                      ...(station === 'alchemist'
+                        ? [
+                            { id: 'healing_draught', label: lang === 'en' ? 'Potion / Draught' : 'Зелье / Фиал', icon: '🧪' },
+                            { id: 'deadly_poison', label: lang === 'en' ? 'Venom / Toxin' : 'Яд / Токсин', icon: '☠️' },
+                            { id: 'volatile_bomb', label: lang === 'en' ? 'Bomb / Grenade' : 'Бомба / Граната', icon: '💣' },
+                            { id: 'mutagen_elixir', label: lang === 'en' ? 'Mutagen Elixir' : 'Мутаген', icon: '🧬' },
+                            { id: 'weapon_oil', label: lang === 'en' ? 'Blade Oil' : 'Масло закалки', icon: '🫙' },
+                            { id: 'astral_solvent', label: lang === 'en' ? 'Essence Solvent' : 'Эссенция', icon: '⚗️' },
+                          ]
+                        : station === 'blacksmith'
+                        ? [
+                            { id: 'belt_girdle', label: lang === 'en' ? 'War Girdle / Belt' : 'Боевой пояс', icon: '🥋' },
+                            { id: 'gauntlets', label: lang === 'en' ? 'Gauntlets' : 'Рукавицы', icon: '🧤' },
+                            { id: 'longsword', label: lang === 'en' ? 'Blade / Sword' : 'Клинок / Меч', icon: '⚔️' },
+                            { id: 'warhammer', label: lang === 'en' ? 'Warhammer' : 'Боевой молот', icon: '🔨' },
+                            { id: 'breastplate', label: lang === 'en' ? 'Cuirass / Armor' : 'Кираса / Доспех', icon: '🦺' },
+                            { id: 'shield', label: lang === 'en' ? 'Aegis Shield' : 'Щит / Эгида', icon: '🛡️' },
+                            { id: 'dagger', label: lang === 'en' ? 'Dagger' : 'Кинжал', icon: '🗡️' },
+                            { id: 'whip', label: lang === 'en' ? 'Lash Whip' : 'Боевой кнут', icon: '🪢' },
+                          ]
+                        : [
+                            { id: 'belt_girdle', label: lang === 'en' ? 'Runic Belt' : 'Рунный пояс', icon: '🥋' },
+                            { id: 'boots', label: lang === 'en' ? 'Strider Boots' : 'Сапоги', icon: '🥾' },
+                            { id: 'ring', label: lang === 'en' ? 'Signet Ring' : 'Перстень / Кольцо', icon: '💍' },
+                            { id: 'amulet', label: lang === 'en' ? 'Talisman / Amulet' : 'Амулет / Талисман', icon: '📿' },
+                            { id: 'cloak', label: lang === 'en' ? 'Phase Cloak' : 'Мантия / Плащ', icon: '🧥' },
+                            { id: 'wand', label: lang === 'en' ? 'Arcane Wand' : 'Жезл', icon: '🪄' },
+                            { id: 'orb', label: lang === 'en' ? 'Resonant Orb' : 'Сфера', icon: '🔮' },
+                            { id: 'scroll', label: lang === 'en' ? 'Runic Scroll' : 'Манускрипт', icon: '📜' },
+                          ]),
+                    ].map((pill) => (
+                      <button
+                        key={pill.id}
+                        onClick={() => {
+                          sfx.playClick();
+                          setTargetArchetype(pill.id);
+                        }}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-mono whitespace-nowrap border transition-all flex items-center gap-1 cursor-pointer ${
+                          targetArchetype === pill.id
+                            ? 'bg-[#192b36] border-amber-400 text-amber-200 font-bold shadow-sm'
+                            : 'bg-[#091117] border-[#223541] text-[#8699a2] hover:text-[#f0ece3] hover:border-[#c9aa72]/40'
+                        }`}
+                      >
+                        <span>{pill.icon}</span>
+                        <span>{pill.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Crucible Chamber Layout */}
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-stretch">
                   {/* Reagent Slots: Crucible Chamber (7 cols) */}
@@ -1859,12 +1984,31 @@ export function App() {
                       </div>
                     )}
 
+                    {locked3dRoll !== null && (
+                      <div className="rounded-xl bg-amber-950/60 border border-amber-500/60 p-2 text-xs flex items-center justify-between gap-2 text-amber-200">
+                        <span className="flex items-center gap-1.5 font-mono">
+                          <span>🎲</span>
+                          <span>
+                            {lang === 'en' ? 'Locked 3D d20 Roll:' : 'Зафиксирован бросок 3D d20:'}{' '}
+                            <strong className="text-base text-amber-300 font-bold">{locked3dRoll}</strong>{' '}
+                            (+{proficiencyBonus} = <span className="text-emerald-300 font-bold">{locked3dRoll + proficiencyBonus}</span>)
+                          </span>
+                        </span>
+                        <button
+                          onClick={() => setLocked3dRoll(null)}
+                          className="text-[10px] text-stone-400 hover:text-rose-300 underline font-mono cursor-pointer"
+                        >
+                          {lang === 'en' ? 'Clear' : 'Сброс'}
+                        </button>
+                      </div>
+                    )}
+
                     <div className="flex gap-2">
                       <button
-                        onClick={handleSynthesize}
-                        disabled={crucibleItems.length < 2 || isEvaluating || isRolling}
+                        onClick={() => handleSynthesize()}
+                        disabled={crucibleItems.length < 2 || isEvaluating || isRolling || stamina <= 0}
                         className={`flex-1 py-3.5 px-4 rounded-xl font-display font-bold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                          crucibleItems.length >= 2 && !isEvaluating
+                          crucibleItems.length >= 2 && !isEvaluating && stamina > 0
                             ? 'bg-gradient-to-r from-[#d0ad77] via-[#c9aa72] to-[#b89154] hover:from-[#e0bd86] hover:to-[#cbb075] text-[#121e27] shadow-[0_4px_20px_rgba(208,173,119,0.35)]'
                             : 'bg-[#182630] text-[#5e727e] border border-[#243745] cursor-not-allowed'
                         }`}
@@ -1873,6 +2017,8 @@ export function App() {
                         <span>
                           {isRolling
                             ? t('synthesizingBtn')
+                            : locked3dRoll !== null
+                            ? `${lang === 'en' ? 'Apply 3D Roll & Synthesize' : 'Применить 3D бросок'} (${locked3dRoll} + ${proficiencyBonus} = ${locked3dRoll + proficiencyBonus})`
                             : tabletopRollMode
                             ? `${lang === 'en' ? 'Synthesize' : 'Синтезировать'} (${manualD20Roll} + ${proficiencyBonus} = ${manualD20Roll + proficiencyBonus})`
                             : `${lang === 'en' ? 'Synthesize (d20 • 1⚡)' : 'Синтезировать (d20 • 1⚡)'}`}
@@ -1884,20 +2030,37 @@ export function App() {
                         onClick={() => {
                           setD20ModalDc(crucibleItems.length >= 2 ? effectiveDc : undefined);
                           setD20ModalModifier(proficiencyBonus);
-                          setD20ModalTitle(lang === 'en' ? `Synthesis: ${activeHero.name}` : `Синтез: ${activeHero.name}`);
+                          setD20ModalTitle(lang === 'en' ? `Synthesis 3D Roll: ${activeHero.name}` : `3D Бросок Синтеза: ${activeHero.name}`);
                           setD20ModalSubtitle(
                             crucibleItems.length >= 2
                               ? (lang === 'en' ? `Synthesis DC: ${effectiveDc}` : `Сложность синтеза СЛ: ${effectiveDc}`)
                               : (lang === 'en' ? 'Craft check d20' : 'Проверка ремесла d20')
                           );
                           setD20ModalTargetResult(tabletopRollMode ? manualD20Roll : undefined);
+                          setD20ModalActionLabel(
+                            crucibleItems.length >= 2
+                              ? (lang === 'en' ? '🔥 Apply & Synthesize Now!' : '🔥 Применить и Синтезировать!')
+                              : (lang === 'en' ? 'Lock 3D Roll' : 'Зафиксировать бросок')
+                          );
+                          setD20ModalConfirmCallback(() => (rolled: number) => {
+                            setLocked3dRoll(rolled);
+                            if (crucibleItems.length >= 2) {
+                              handleSynthesize(rolled);
+                            }
+                          });
                           setShowD20Modal(true);
                         }}
-                        className="px-3.5 py-3.5 rounded-xl border border-amber-500/50 bg-[#162732] hover:bg-[#203644] text-amber-300 font-display font-bold text-xs flex items-center gap-1.5 shadow-md cursor-pointer transition-all"
+                        className={`px-3.5 py-3.5 rounded-xl border font-display font-bold text-xs flex items-center gap-1.5 shadow-md cursor-pointer transition-all ${
+                          locked3dRoll !== null
+                            ? 'border-amber-400 bg-amber-950/80 text-amber-200 ring-2 ring-amber-400/50'
+                            : 'border-amber-500/50 bg-[#162732] hover:bg-[#203644] text-amber-300'
+                        }`}
                         title="3D d20"
                       >
                         <span>🎲</span>
-                        <span className="hidden sm:inline">3D d20</span>
+                        <span className="hidden sm:inline">
+                          {locked3dRoll !== null ? `3D: ${locked3dRoll}` : '3D d20'}
+                        </span>
                       </button>
                     </div>
                   </div>
@@ -2213,26 +2376,56 @@ export function App() {
                         </div>
                       </div>
 
-                      <button
-                        onClick={() => handleHarvestMonster(monster.id)}
-                        disabled={locked || isRolling}
-                        className={`w-full py-2.5 px-4 rounded-xl font-display font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                          locked
-                            ? 'bg-[#0f171d] border border-[#1e2d36] text-[#556976] cursor-not-allowed'
-                            : 'bg-[#152a22] hover:bg-[#1d3d31] border border-emerald-500/50 text-emerald-200'
-                        }`}
-                      >
-                        <span className="text-base">🔪</span>
-                        <span>
-                          {locked
-                            ? (lang === 'en' ? `Requires Mastery Level ${monster.minAlchemistLevel}` : `Требуется Уровень Мастерства ${monster.minAlchemistLevel}`)
-                            : isRolling
-                            ? (lang === 'en' ? 'Hunting & Harvesting...' : 'Охота и разделка...')
-                            : tabletopRollMode
-                            ? (lang === 'en' ? `Harvest with table roll (${manualD20Roll} • -${monster.staminaCost}⚡)` : `Разделать по кубику со стола (${manualD20Roll} • -${monster.staminaCost}⚡)`)
-                            : (lang === 'en' ? `Fast Harvest (-${monster.staminaCost}⚡ • Roll d20)` : `Быстрая охота и разделка (-${monster.staminaCost}⚡ • Бросить d20)`)}
-                        </span>
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleHarvestMonster(monster.id)}
+                          disabled={locked || isRolling || stamina < monster.staminaCost}
+                          className={`flex-1 py-2.5 px-3 rounded-xl font-display font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                            locked || stamina < monster.staminaCost
+                              ? 'bg-[#0f171d] border border-[#1e2d36] text-[#556976] cursor-not-allowed'
+                              : 'bg-[#152a22] hover:bg-[#1d3d31] border border-emerald-500/50 text-emerald-200'
+                          }`}
+                        >
+                          <span className="text-base">🔪</span>
+                          <span>
+                            {locked
+                              ? (lang === 'en' ? `Mastery Lv. ${monster.minAlchemistLevel}` : `Мастерство ${monster.minAlchemistLevel}`)
+                              : isRolling
+                              ? (lang === 'en' ? 'Harvesting...' : 'Разделка...')
+                              : locked3dRoll !== null
+                              ? (lang === 'en' ? `Apply 3D (${locked3dRoll}) -${monster.staminaCost}⚡` : `Применить 3D (${locked3dRoll}) -${monster.staminaCost}⚡`)
+                              : tabletopRollMode
+                              ? (lang === 'en' ? `Harvest (${manualD20Roll} • -${monster.staminaCost}⚡)` : `Разделать (${manualD20Roll} • -${monster.staminaCost}⚡)`)
+                              : (lang === 'en' ? `Fast Harvest (-${monster.staminaCost}⚡)` : `Охота и разделка (-${monster.staminaCost}⚡)`)}
+                          </span>
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={locked || isRolling || stamina < monster.staminaCost}
+                          onClick={() => {
+                            setD20ModalDc(monster.drops[0].dc);
+                            setD20ModalModifier(Math.max(proficiencyBonus, activeHero.harvestBonus) + (hasUpgrade('harvest_bonus_2') ? 2 : 0));
+                            setD20ModalTitle(lang === 'en' ? `3D Harvest: ${monster.nameEn}` : `3D Разделка: ${monster.name}`);
+                            setD20ModalSubtitle(`${activeHero.name} • DC ${monster.drops[0].dc} (${monster.drops[0].tier})`);
+                            setD20ModalActionLabel(lang === 'en' ? '🔪 Harvest Monster Now' : '🔪 Разделать монстра сейчас');
+                            setD20ModalConfirmCallback(() => (rolled: number) => {
+                              setLocked3dRoll(rolled);
+                              handleHarvestMonster(monster.id, rolled);
+                            });
+                            setShowD20Modal(true);
+                          }}
+                          className={`px-3 py-2.5 rounded-xl border font-mono font-bold text-xs flex items-center justify-center gap-1 shadow-md cursor-pointer transition-all ${
+                            locked3dRoll !== null
+                              ? 'border-amber-400 bg-amber-950/80 text-amber-200 ring-1 ring-amber-400'
+                              : 'border-emerald-500/50 bg-[#162732] hover:bg-[#203644] text-emerald-300'
+                          }`}
+                          title="3D d20"
+                        >
+                          <span>🎲</span>
+                          <span className="hidden sm:inline">3D</span>
+                        </button>
+                      </div>
                     </div>
                   );
                 })}
@@ -2447,8 +2640,38 @@ export function App() {
               monsters={allMonsters}
               activeHeroId={activeHeroId}
               activeBuffs={activeBuffs}
+              heroHpMap={heroHpMap}
+              heroWoundsMap={heroWoundsMap}
+              useLiveApi={useLiveJev}
+              apiKey={customApiKey || undefined}
               onSelectHero={(hId) => setActiveHeroId(hId)}
               onBattleFinished={handleConsumeBuffFight}
+              onHealHeroWithGold={(hId, costGold) => {
+                if (gold < costGold) {
+                  showToast(
+                    lang === 'en'
+                      ? `Not enough gold (${costGold} gp needed)!`
+                      : `Не хватает золота (нужно ${costGold} зм)!`
+                  );
+                  return;
+                }
+                const hero = GUILD_WORLD_HEROES.find((h) => h.id === hId) || activeHero;
+                setGold((prev) => Math.max(0, prev - costGold));
+                setHeroHpMap((prev) => ({
+                  ...prev,
+                  [hId]: hero.baseHp,
+                }));
+                setHeroWoundsMap((prev) => ({
+                  ...prev,
+                  [hId]: 0,
+                }));
+                sfx.playSuccess();
+                showToast(
+                  lang === 'en'
+                    ? `${hero.name} fully restored (${hero.baseHp} HP) and cured of battle wounds!`
+                    : `${hero.name} полностью исцелен (${hero.baseHp} HP) и вылечен от ранений!`
+                );
+              }}
               onEquipSlot={(slot: HeroSlotType, itemId: string | undefined) => {
                 setHeroLoadout((prev) => ({
                   ...prev,
@@ -2459,10 +2682,22 @@ export function App() {
                 }
               }}
               onInspectItem={(it) => setInspectedItem(it)}
-              onCompleteRaid={({ victory, monster, lootItemIds, goldEarned, xpEarned, staminaSpent }) => {
+              onCompleteRaid={({ victory, monster, lootItemIds, goldEarned, xpEarned, staminaSpent, heroHpLeft, woundAdded }) => {
                 setStamina((prev) => Math.max(0, prev - staminaSpent));
                 setGold((prev) => prev + goldEarned);
                 setXp((prev) => prev + xpEarned);
+                if (typeof heroHpLeft === 'number') {
+                  setHeroHpMap((prev) => ({
+                    ...prev,
+                    [activeHero.id]: heroHpLeft,
+                  }));
+                }
+                if (woundAdded) {
+                  setHeroWoundsMap((prev) => ({
+                    ...prev,
+                    [activeHero.id]: (prev[activeHero.id] || 0) + 1,
+                  }));
+                }
                 setInventory((prev) => {
                   const next = { ...prev };
                   lootItemIds.forEach((id) => {
@@ -2474,7 +2709,7 @@ export function App() {
                 showToast(
                   victory
                     ? `🏆 ${activeHero.name} победил «${monster.name}»! +${lootItemIds.length} трофея, +${goldEarned} gp!`
-                    : `${activeHero.name} отступил из боя с «${monster.name}», унеся 1 трофей и +${goldEarned} gp.`
+                    : `💀 ${activeHero.name} потерпел поражение от «${monster.name}»! Получено ранение.`
                 );
               }}
             />
@@ -2728,14 +2963,26 @@ export function App() {
       {/* 3D THREE.JS D20 DICE ROLL MODAL */}
       <D20DiceModal
         isOpen={showD20Modal}
-        onClose={() => setShowD20Modal(false)}
+        onClose={() => {
+          setShowD20Modal(false);
+          setD20ModalConfirmCallback(null);
+        }}
         targetResult={d20ModalTargetResult}
         modifier={d20ModalModifier}
         dc={d20ModalDc}
         title={d20ModalTitle}
         subtitle={d20ModalSubtitle}
+        actionLabel={d20ModalActionLabel}
         onRollComplete={(rolledVal) => {
           setManualD20Roll(rolledVal);
+          setLocked3dRoll(rolledVal);
+        }}
+        onConfirmAction={(rolledVal) => {
+          setManualD20Roll(rolledVal);
+          setLocked3dRoll(rolledVal);
+          if (d20ModalConfirmCallback) {
+            d20ModalConfirmCallback(rolledVal);
+          }
         }}
       />
 

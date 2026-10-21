@@ -5,6 +5,8 @@ import {
   GameItem,
   JevDecisionTelemetry,
   JevHaggleTelemetry,
+  JevRaidTelemetry,
+  Monster,
   Rarity,
 } from '../types/game';
 import { ELEMENT_META, RARITY_META } from '../data/bestiary';
@@ -21,7 +23,7 @@ const ALL_ELEMENTS: ElementType[] = [
   'radiant',
 ];
 
-const ARCHETYPES_BY_STATION: Record<
+export const ARCHETYPES_BY_STATION: Record<
   CraftingStation,
   Record<
     string,
@@ -132,6 +134,23 @@ const ARCHETYPES_BY_STATION: Record<
       typeLabel: 'Доспех (щит)',
       baseAc: '+2 к КД',
     },
+    belt_girdle: {
+      nameRu: 'Боевой пояс',
+      nameEn: 'War Girdle',
+      gender: 'm',
+      icon: '🥋',
+      typeLabel: 'Чудесный предмет (пояс / перевязь)',
+      baseAc: '+1 к КД и проверкам Силы/Телосложения',
+    },
+    gauntlets: {
+      nameRu: 'Рукавицы',
+      nameEn: 'Gauntlets',
+      gender: 'f',
+      icon: '🧤',
+      typeLabel: 'Чудесный предмет (боевые перчатки)',
+      baseDice: '1d6',
+      baseAc: '+1 к КД и броскам рукопашной атаки',
+    },
   },
   artificer: {
     ring: {
@@ -178,6 +197,22 @@ const ARCHETYPES_BY_STATION: Record<
       icon: '📜',
       typeLabel: 'Свиток высших чар',
       baseDice: '5d6',
+    },
+    belt_girdle: {
+      nameRu: 'Рунный пояс',
+      nameEn: 'Runic Belt',
+      gender: 'm',
+      icon: '🥋',
+      typeLabel: 'Чудесный предмет (алхимический пояс)',
+      baseAc: '+1 к КД и +1 слот зелий/эликсиров',
+    },
+    boots: {
+      nameRu: 'Сапоги',
+      nameEn: 'Strider Boots',
+      gender: 'm',
+      icon: '🥾',
+      typeLabel: 'Чудесный предмет (сапоги)',
+      baseAc: '+10 фт. скорости и +1 к КД',
     },
   },
 };
@@ -464,7 +499,8 @@ function computeRarityAndDc(
  */
 export function simulateCalibratedJevDecision(
   station: CraftingStation,
-  reagents: GameItem[]
+  reagents: GameItem[],
+  preferredArchetype?: string
 ): JevDecisionTelemetry {
   const sorted = [...reagents].sort((a, b) => a.id.localeCompare(b.id));
   const seedKey = makeRecipeKey(station, sorted);
@@ -526,6 +562,13 @@ export function simulateCalibratedJevDecision(
     if (sorted.some((r) => r.id.includes('tentacle') || r.id.includes('tongue')))
       archWeights.whip += 2.1;
     if (sorted.some((r) => r.powerLevel >= 12)) archWeights.warhammer += 1.25;
+    if (
+      materials.has('hide') ||
+      sorted.some((r) => r.id.includes('girdle') || r.id.includes('belt'))
+    )
+      archWeights.belt_girdle += 2.4;
+    if (sorted.some((r) => r.id.includes('gauntlet') || r.id.includes('claw') || r.id.includes('fist')))
+      archWeights.gauntlets += 2.2;
   } else {
     if (materials.has('crystal') || sorted.some((r) => r.id.includes('ring')))
       archWeights.ring += 1.65;
@@ -535,10 +578,28 @@ export function simulateCalibratedJevDecision(
     if (materials.has('hide')) archWeights.cloak += 1.95;
     if (elProbs.psychic > 0.25 || elProbs.force > 0.25) archWeights.orb += 1.5;
     if (materials.has('parchment') || materials.has('essence')) archWeights.scroll += 1.85;
+    if (sorted.some((r) => r.id.includes('girdle') || r.id.includes('belt')))
+      archWeights.belt_girdle += 2.5;
+    if (sorted.some((r) => r.id.includes('boot') || r.id.includes('tread') || r.id.includes('hoof')))
+      archWeights.boots += 2.4;
+  }
+
+  // If player explicitly selected a target blueprint / archetype, lock it in!
+  if (
+    preferredArchetype &&
+    preferredArchetype !== 'auto' &&
+    ARCHETYPES_BY_STATION[station][preferredArchetype]
+  ) {
+    archWeights[preferredArchetype] = (archWeights[preferredArchetype] || 1) + 12.0;
   }
 
   const archProbs = normalizeProbabilities(archWeights);
-  const topArch = Object.entries(archProbs).sort((a, b) => b[1] - a[1])[0][0];
+  const topArch =
+    preferredArchetype &&
+    preferredArchetype !== 'auto' &&
+    ARCHETYPES_BY_STATION[station][preferredArchetype]
+      ? preferredArchetype
+      : Object.entries(archProbs).sort((a, b) => b[1] - a[1])[0][0];
 
   // 3. Special Effect distribution
   const effectWeights: Record<string, number> = {
@@ -639,10 +700,14 @@ export function simulateCalibratedJevDecision(
 export async function evaluateCrucibleWithJev(
   station: CraftingStation,
   reagents: GameItem[],
-  options: { useLiveApi: boolean; apiKey?: string }
+  options: { useLiveApi: boolean; apiKey?: string; preferredArchetype?: string }
 ): Promise<JevDecisionTelemetry> {
   const sorted = [...reagents].sort((a, b) => a.id.localeCompare(b.id));
-  const fallback = simulateCalibratedJevDecision(station, sorted);
+  const fallback = simulateCalibratedJevDecision(
+    station,
+    sorted,
+    options.preferredArchetype
+  );
 
   if (!options.useLiveApi) {
     return fallback;
@@ -651,6 +716,7 @@ export async function evaluateCrucibleWithJev(
   try {
     const statePayload = {
       station,
+      preferredArchetype: options.preferredArchetype || 'auto',
       reagents: sorted.map((r) => ({
         id: r.id,
         name: r.nameEn,
@@ -707,13 +773,20 @@ export async function evaluateCrucibleWithJev(
 
     const { rarity, dc } = computeRarityAndDc(sorted, volScore, compatNoul);
 
+    const chosenArch =
+      options.preferredArchetype &&
+      options.preferredArchetype !== 'auto' &&
+      ARCHETYPES_BY_STATION[station][options.preferredArchetype]
+        ? options.preferredArchetype
+        : ans.itemArchetype?.choice || fallback.itemArchetype.choice;
+
     return {
       source: 'live-jev',
       latencyMs: data.latencyMs || 85,
       isCompatible: { noul: Number(compatNoul.toFixed(3)) },
       volatility: { score: volScore },
       itemArchetype: {
-        choice: ans.itemArchetype?.choice || fallback.itemArchetype.choice,
+        choice: chosenArch,
         probabilities: ans.itemArchetype?.probabilities || fallback.itemArchetype.probabilities,
       },
       elementAffinity: {
@@ -756,15 +829,21 @@ export function assembleCraftedItem(
   station: CraftingStation,
   reagents: GameItem[],
   telemetry: JevDecisionTelemetry,
-  rollOutcome: 'masterwork' | 'success' | 'cursed'
+  rollOutcome: 'masterwork' | 'success' | 'cursed',
+  preferredArchetype?: string
 ): GameItem {
   const sorted = [...reagents].sort((a, b) => a.id.localeCompare(b.id));
   const recipeKey = makeRecipeKey(station, sorted);
 
   const stationMap = ARCHETYPES_BY_STATION[station];
-  const archKey = stationMap[telemetry.itemArchetype.choice]
-    ? telemetry.itemArchetype.choice
-    : Object.keys(stationMap)[0];
+  const archKey =
+    preferredArchetype &&
+    preferredArchetype !== 'auto' &&
+    stationMap[preferredArchetype]
+      ? preferredArchetype
+      : stationMap[telemetry.itemArchetype.choice]
+        ? telemetry.itemArchetype.choice
+        : Object.keys(stationMap)[0];
   const arch = stationMap[archKey];
 
   const primaryEl = ALL_ELEMENTS.includes(telemetry.elementAffinity.choice)
@@ -825,7 +904,7 @@ export function assembleCraftedItem(
     secondaryEl && rarityRank >= 2 ? ELEMENT_META[secondaryEl].label.toLowerCase() : null;
 
   let damageFormula: string | undefined;
-  const isMartialWeapon = ['dagger', 'longsword', 'warhammer', 'whip'].includes(archKey);
+  const isMartialWeapon = ['dagger', 'longsword', 'warhammer', 'whip', 'gauntlets'].includes(archKey);
 
   if (isMartialWeapon && arch.baseDice) {
     if (rarityRank === 1) {
@@ -966,7 +1045,7 @@ export function assembleCraftedItem(
     (rollOutcome === 'masterwork' ? 1.6 : rollOutcome === 'cursed' ? 0.65 : 1.0) *
     (craftGeneration >= 2 ? 1.25 : 1.0);
 
-  const itemId = `crafted_${deterministicHash(recipeKey + '_' + rollOutcome + '_gen' + craftGeneration).toString(36)}`;
+  const itemId = `crafted_${deterministicHash(recipeKey + '_' + archKey + '_' + rollOutcome + '_gen' + craftGeneration).toString(36)}`;
 
   return {
     id: itemId,
@@ -1141,3 +1220,222 @@ export async function evaluateMerchantHaggleWithJev(
     return fallback;
   }
 }
+
+/**
+ * Evaluates a monster raid encounter via TypeSafe AI Jev (`client.systemOne`)
+ * with deterministic NAR fallback. Produces calibrated probabilities (`noul`),
+ * monster combat tactic (`choice`), battlefield hazard (`choice`), and anatomical preservation (`score`).
+ */
+export async function evaluateRaidWithJev(
+  params: {
+    heroId: string;
+    heroName: string;
+    heroHp: number;
+    heroMaxHp: number;
+    heroAc: number;
+    heroAttackBonus: number;
+    equippedItemsCount: number;
+    activeBuffsCount: number;
+    monster: Monster;
+    d20InitiativeOrStrike?: number;
+  },
+  options: { useLiveApi: boolean; apiKey?: string }
+): Promise<JevRaidTelemetry> {
+  const {
+    heroName,
+    heroHp,
+    heroMaxHp,
+    heroAc,
+    heroAttackBonus,
+    equippedItemsCount,
+    activeBuffsCount,
+    monster,
+    d20InitiativeOrStrike,
+  } = params;
+
+  const seed = deterministicHash(
+    `${heroName}_${monster.id}_${heroHp}_${equippedItemsCount}_${activeBuffsCount}_${d20InitiativeOrStrike ?? 10}`
+  );
+
+  const hpRatio = Math.min(1.2, Math.max(0.15, heroHp / Math.max(1, heroMaxHp)));
+  const crDelta = 14 - monster.cr; // Heroes are level 14 baseline
+  const gearAdvantage = equippedItemsCount * 0.055 + activeBuffsCount * 0.06;
+  const rollShift = d20InitiativeOrStrike ? (d20InitiativeOrStrike - 10.5) * 0.022 : 0;
+
+  const rawWinProb = Math.min(
+    0.96,
+    Math.max(
+      0.08,
+      0.56 +
+        crDelta * 0.042 +
+        gearAdvantage +
+        (hpRatio - 0.85) * 0.35 +
+        (heroAc - 20) * 0.02 +
+        (heroAttackBonus - 11) * 0.02 +
+        rollShift
+    )
+  );
+
+  const rawAmbushProb = Math.min(
+    0.92,
+    Math.max(
+      0.08,
+      0.24 +
+        monster.cr * 0.026 -
+        gearAdvantage * 0.45 -
+        (d20InitiativeOrStrike ? (d20InitiativeOrStrike - 10) * 0.02 : 0)
+    )
+  );
+
+  const creatureLower = monster.creatureType.toLowerCase();
+  const tacticWeights: Record<JevRaidTelemetry['monsterTactic']['choice'], number> = {
+    frenzied_assault: 0.25 + (creatureLower.includes('дракон') || creatureLower.includes('великан') ? 0.45 : 0.1),
+    lair_ambush: 0.2 + (creatureLower.includes('перевертыш') || creatureLower.includes('инсектоид') ? 0.5 : 0.15),
+    arcane_barrage: 0.2 + (creatureLower.includes('лич') || creatureLower.includes('аберрация') ? 0.55 : 0.1),
+    regenerative_stall: 0.18 + (creatureLower.includes('слизь') || monster.id.includes('troll') ? 0.55 : 0.08),
+    soul_drain: 0.17 + (creatureLower.includes('нежить') || creatureLower.includes('исчадие') ? 0.55 : 0.08),
+  };
+  const tacticProbs = normalizeProbabilities(tacticWeights);
+  const topTactic = (Object.entries(tacticProbs).sort((a, b) => b[1] - a[1])[0][0] ||
+    'frenzied_assault') as JevRaidTelemetry['monsterTactic']['choice'];
+
+  const hazardWeights: Record<JevRaidTelemetry['battlefieldHazard']['choice'], number> = {
+    caustic_mist: 0.22 + (monster.biome.toLowerCase().includes('болот') || monster.biome.toLowerCase().includes('вод') ? 0.45 : 0.1),
+    unstable_leyline: 0.24 + (monster.cr >= 12 ? 0.4 : 0.1),
+    blood_frenzy: 0.25 + (monster.cr >= 7 && monster.cr <= 15 ? 0.35 : 0.12),
+    clear_sanctum: 0.29 + (monster.cr <= 5 ? 0.35 : 0.08),
+  };
+  const hazardProbs = normalizeProbabilities(hazardWeights);
+  const topHazard = (Object.entries(hazardProbs).sort((a, b) => b[1] - a[1])[0][0] ||
+    'clear_sanctum') as JevRaidTelemetry['battlefieldHazard']['choice'];
+
+  const organScore = Math.min(
+    5,
+    Math.max(
+      1,
+      Math.round(
+        2.8 +
+          rawWinProb * 1.6 -
+          rawAmbushProb * 0.9 +
+          (d20InitiativeOrStrike && d20InitiativeOrStrike >= 16 ? 1 : 0)
+      )
+    )
+  );
+
+  const tacticLabelsRu: Record<JevRaidTelemetry['monsterTactic']['choice'], string> = {
+    frenzied_assault: 'Сокрушительный натиск (бонус к урону монстра в первых раундах)',
+    lair_ambush: 'Засада в логове (повышенный шанс критического удара из тени)',
+    arcane_barrage: 'Магический шквал (игнорирует часть обычной брони)',
+    regenerative_stall: 'Регенерация плоти (восстанавливает хиты каждый раунд)',
+    soul_drain: 'Похищение жизни (исцеляется от нанесённых герою ран)',
+  };
+
+  const tacticLabelsEn: Record<JevRaidTelemetry['monsterTactic']['choice'], string> = {
+    frenzied_assault: 'Frenzied Assault (bonus monster damage in opening rounds)',
+    lair_ambush: 'Lair Ambush (elevated critical strike threat from stealth)',
+    arcane_barrage: 'Arcane Barrage (bypasses mundane armor plating)',
+    regenerative_stall: 'Regenerative Stall (restores vitality each combat round)',
+    soul_drain: 'Soul Drain (siphons hero life force on successful strikes)',
+  };
+
+  const fallback: JevRaidTelemetry = {
+    source: 'nar-calibrated-sim',
+    latencyMs: 64 + (seed % 27),
+    winProbability: { noul: Number(rawWinProb.toFixed(3)) },
+    ambushRisk: { noul: Number(rawAmbushProb.toFixed(3)) },
+    monsterTactic: {
+      choice: topTactic,
+      probabilities: tacticProbs,
+    },
+    battlefieldHazard: {
+      choice: topHazard,
+      probabilities: hazardProbs,
+    },
+    organPreservation: { score: organScore },
+    tacticalSummaryRu: `Прогноз Jev: шанс победы ${Math.round(rawWinProb * 100)}%, риск засады ${Math.round(
+      rawAmbushProb * 100
+    )}%. Тактика врага: ${tacticLabelsRu[topTactic]}.`,
+    tacticalSummaryEn: `Jev Forecast: ${Math.round(rawWinProb * 100)}% win probability, ${Math.round(
+      rawAmbushProb * 100
+    )}% ambush risk. Enemy tactic: ${tacticLabelsEn[topTactic]}.`,
+  };
+
+  if (!options.useLiveApi) {
+    return fallback;
+  }
+
+  try {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (options.apiKey) {
+      headers['x-typesafe-api-key'] = options.apiKey;
+    }
+
+    const res = await fetch('/api/jev/raid', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        state: {
+          hero: {
+            name: heroName,
+            currentHp: heroHp,
+            maxHp: heroMaxHp,
+            armorClass: heroAc,
+            attackBonus: heroAttackBonus,
+            equippedArtifactsCount: equippedItemsCount,
+            activeElixirBuffsCount: activeBuffsCount,
+            d20Roll: d20InitiativeOrStrike ?? null,
+          },
+          monster: {
+            id: monster.id,
+            name: monster.nameEn,
+            challengeRating: monster.cr,
+            creatureType: monster.creatureType,
+            biome: monster.biome,
+          },
+        },
+      }),
+    });
+
+    if (!res.ok) return fallback;
+    const data = await res.json();
+    const ans = data.answers;
+    if (!ans) return fallback;
+
+    const winNoul = Number((ans.winProbability?.noul ?? fallback.winProbability.noul).toFixed(3));
+    const ambushNoul = Number((ans.ambushRisk?.noul ?? fallback.ambushRisk.noul).toFixed(3));
+    const tacticChoice = (ans.monsterTactic?.choice ||
+      fallback.monsterTactic.choice) as JevRaidTelemetry['monsterTactic']['choice'];
+    const hazardChoice = (ans.battlefieldHazard?.choice ||
+      fallback.battlefieldHazard.choice) as JevRaidTelemetry['battlefieldHazard']['choice'];
+    const presScore = Math.min(
+      5,
+      Math.max(1, Math.round(ans.organPreservation?.score ?? fallback.organPreservation.score))
+    );
+
+    return {
+      source: 'live-jev',
+      latencyMs: data.latencyMs || 110,
+      winProbability: { noul: winNoul },
+      ambushRisk: { noul: ambushNoul },
+      monsterTactic: {
+        choice: tacticChoice,
+        probabilities: ans.monsterTactic?.probabilities || fallback.monsterTactic.probabilities,
+      },
+      battlefieldHazard: {
+        choice: hazardChoice,
+        probabilities:
+          ans.battlefieldHazard?.probabilities || fallback.battlefieldHazard.probabilities,
+      },
+      organPreservation: { score: presScore },
+      tacticalSummaryRu: `Прогноз Jev (Live): шанс победы ${Math.round(winNoul * 100)}%, риск засады ${Math.round(
+        ambushNoul * 100
+      )}%. Тактика врага: ${tacticLabelsRu[tacticChoice] || tacticChoice}.`,
+      tacticalSummaryEn: `Jev Live Forecast: ${Math.round(winNoul * 100)}% win probability, ${Math.round(
+        ambushNoul * 100
+      )}% ambush risk. Enemy tactic: ${tacticLabelsEn[tacticChoice] || tacticChoice}.`,
+    };
+  } catch {
+    return fallback;
+  }
+}
+

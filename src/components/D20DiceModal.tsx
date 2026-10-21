@@ -10,7 +10,9 @@ interface D20DiceModalProps {
   dc?: number;
   title?: string;
   subtitle?: string;
+  actionLabel?: string;
   onRollComplete?: (result: number, total: number) => void;
+  onConfirmAction?: (result: number, total: number) => void;
 }
 
 type DiceSkin = 'basalt_gold' | 'dragon_ruby' | 'shadow_astral' | 'emerald_ooze';
@@ -73,7 +75,9 @@ export const D20DiceModal: React.FC<D20DiceModalProps> = ({
   dc,
   title = 'Бросок d20 Судьбы',
   subtitle = 'Мыс Дальний Камень',
+  actionLabel,
   onRollComplete,
+  onConfirmAction,
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const [currentRoll, setCurrentRoll] = useState<number>(targetResult || 20);
@@ -636,17 +640,30 @@ export const D20DiceModal: React.FC<D20DiceModalProps> = ({
           <button
             onClick={() => triggerRoll()}
             disabled={isRolling}
-            className="flex-1 py-2.5 px-4 rounded-xl border border-amber-500/40 bg-stone-900 hover:bg-stone-800 text-amber-200 font-semibold text-xs transition flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+            className="py-2.5 px-4 rounded-xl border border-amber-500/40 bg-stone-900 hover:bg-stone-800 text-amber-200 font-semibold text-xs transition flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
           >
             <span>🎲</span>
-            <span>Бросить снова</span>
+            <span>Бросить снова / Reroll</span>
           </button>
           <button
-            onClick={onClose}
-            className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-stone-950 font-bold text-xs shadow-lg transition flex items-center justify-center gap-2 cursor-pointer"
+            disabled={isRolling}
+            onClick={() => {
+              if (onRollComplete) {
+                onRollComplete(currentRoll, total);
+              }
+              if (onConfirmAction) {
+                onConfirmAction(currentRoll, total);
+              }
+              onClose();
+            }}
+            className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-stone-950 font-black text-xs shadow-lg transition flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
           >
-            <span>✓</span>
-            <span>Принять бросок</span>
+            <span>⚡</span>
+            <span>
+              {actionLabel
+                ? `${actionLabel} (d20 = ${currentRoll})`
+                : `Применить результат d20 = ${currentRoll} / Lock Roll`}
+            </span>
           </button>
         </div>
       </div>
