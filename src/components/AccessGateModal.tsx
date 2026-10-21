@@ -197,9 +197,6 @@ export const AccessGateModal: React.FC<AccessGateModalProps> = ({
               <div className="space-y-2">
                 <label className="text-xs font-serif font-semibold text-stone-300 flex items-center justify-between">
                   <span>Ключ доступа (Пароль отряда или GM-ключ):</span>
-                  <span className="text-[10px] text-stone-500 font-mono">
-                    По умолч.: dalniy_kamen
-                  </span>
                 </label>
                 <div className="relative">
                   <input
