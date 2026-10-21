@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Award,
+  BookOpen,
   Check,
   ChevronDown,
   Compass,
@@ -67,6 +68,7 @@ import { CompositeItemSprite, CompositeMonsterSprite } from './components/Compos
 import { HeroRaidPanel, getHeroSlotForItem } from './components/HeroRaidPanel';
 import { MerchantHaggleModal } from './components/MerchantHaggleModal';
 import { DmMasterModal } from './components/DmMasterModal';
+import { CodexFolioPanel } from './components/CodexFolioPanel';
 import { sfx } from './utils/sound';
 
 const STORAGE_KEY = 'dnd_jev_alchemist_guild_world_v2';
@@ -89,7 +91,7 @@ interface RollResultState {
 
 export function App() {
   // === CORE GAME STATE ===
-  const [activeMainTab, setActiveMainTab] = useState<'crucible' | 'bestiary' | 'guild' | 'hero_raid'>('crucible');
+  const [activeMainTab, setActiveMainTab] = useState<'crucible' | 'codex' | 'bestiary' | 'guild' | 'hero_raid'>('crucible');
   const [station, setStation] = useState<CraftingStation>('alchemist');
   const [activeHeroId, setActiveHeroId] = useState<PartyHeroProfile['id']>('quick');
 
@@ -112,6 +114,10 @@ export function App() {
     dalniy_dragon_horn: 2,
     cube_acid_ooze: 2,
     mimic_toothed_splinter: 2,
+    irvek_bone_ash: 1,
+    feeder_fat_oil: 1,
+    aboleth_mucus_vial: 1,
+    chimera_reef_horn: 1,
     catalyst_crystal_vial: 3,
     catalyst_mithral_ingot: 2,
     catalyst_silver_ring: 1,
@@ -126,6 +132,10 @@ export function App() {
     'dalniy_dragon_horn',
     'cube_acid_ooze',
     'mimic_toothed_splinter',
+    'irvek_bone_ash',
+    'feeder_fat_oil',
+    'aboleth_mucus_vial',
+    'chimera_reef_horn',
     'catalyst_crystal_vial',
     'catalyst_mithral_ingot',
     'catalyst_silver_ring',
@@ -1187,21 +1197,36 @@ export function App() {
             )}
           </div>
 
-          {/* Navigation Bar between the 4 Core Screens — Стиль фолианта */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-1.5 rounded-2xl bg-[#0e1820] border border-[#c9aa72]/25 shadow-lg">
+          {/* Navigation Bar between the 5 Core Screens — Стиль фолианта */}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 p-1.5 rounded-2xl bg-[#0e1820] border border-[#c9aa72]/25 shadow-lg">
             <button
               onClick={() => {
                 sfx.playClick();
                 setActiveMainTab('crucible');
               }}
-              className={`py-2.5 px-3 rounded-xl font-display font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${
+              className={`py-2.5 px-2 rounded-xl font-display font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                 activeMainTab === 'crucible'
                   ? 'bg-[#182a34] text-[#fbf7ee] border border-[#d0ad77] shadow-[0_2px_10px_rgba(208,173,119,0.2)]'
                   : 'text-[#8b9ea8] hover:text-[#f0ece3] hover:bg-[#121f28]'
               }`}
             >
               <Flame className="w-4 h-4 text-[#d0ad77] shrink-0" />
-              <span className="truncate">1. Тигель и Синтез</span>
+              <span className="truncate">1. Тигель</span>
+            </button>
+
+            <button
+              onClick={() => {
+                sfx.playClick();
+                setActiveMainTab('codex');
+              }}
+              className={`py-2.5 px-2 rounded-xl font-display font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                activeMainTab === 'codex'
+                  ? 'bg-[#182a34] text-[#e5cb94] border border-[#c9aa72] shadow-[0_2px_10px_rgba(208,173,119,0.2)]'
+                  : 'text-[#8b9ea8] hover:text-[#f0ece3] hover:bg-[#121f28]'
+              }`}
+            >
+              <BookOpen className="w-4 h-4 text-[#e5cb94] shrink-0" />
+              <span className="truncate">2. Каталог-Гримуар</span>
             </button>
 
             <button
@@ -1209,14 +1234,14 @@ export function App() {
                 sfx.playClick();
                 setActiveMainTab('bestiary');
               }}
-              className={`py-2.5 px-3 rounded-xl font-display font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${
+              className={`py-2.5 px-2 rounded-xl font-display font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                 activeMainTab === 'bestiary'
                   ? 'bg-[#182a34] text-emerald-200 border border-emerald-500/60 shadow-[0_2px_10px_rgba(16,185,129,0.2)]'
                   : 'text-[#8b9ea8] hover:text-[#f0ece3] hover:bg-[#121f28]'
               }`}
             >
               <Compass className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span className="truncate">2. Бестиарий ({allMonsters.length})</span>
+              <span className="truncate">3. Бестиарий ({allMonsters.length})</span>
             </button>
 
             <button
@@ -1224,7 +1249,7 @@ export function App() {
                 sfx.playClick();
                 setActiveMainTab('hero_raid');
               }}
-              className={`py-2.5 px-3 rounded-xl font-display font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${
+              className={`py-2.5 px-2 rounded-xl font-display font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                 activeMainTab === 'hero_raid'
                   ? 'bg-[#182a34] text-rose-200 border border-rose-500/60 shadow-[0_2px_10px_rgba(244,63,94,0.2)]'
                   : 'text-[#8b9ea8] hover:text-[#f0ece3] hover:bg-[#121f28]'
@@ -1232,7 +1257,7 @@ export function App() {
             >
               <Swords className="w-4 h-4 text-rose-400 shrink-0" />
               <span className="truncate">
-                3. Отряд ({activeHero.name.split(' ')[0]})
+                4. Отряд ({activeHero.name.split(' ')[0]})
               </span>
             </button>
 
@@ -1241,15 +1266,15 @@ export function App() {
                 sfx.playClick();
                 setActiveMainTab('guild');
               }}
-              className={`py-2.5 px-3 rounded-xl font-display font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${
+              className={`py-2.5 px-2 rounded-xl font-display font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                 activeMainTab === 'guild'
-                  ? 'bg-[#182a34] text-[#e5cb94] border border-[#c9aa72] shadow-[0_2px_10px_rgba(208,173,119,0.2)]'
+                  ? 'bg-[#182a34] text-amber-300 border border-amber-500/60 shadow-[0_2px_10px_rgba(208,173,119,0.2)]'
                   : 'text-[#8b9ea8] hover:text-[#f0ece3] hover:bg-[#121f28]'
               }`}
             >
               <ShoppingBag className="w-4 h-4 text-[#d0ad77] shrink-0" />
               <span className="truncate">
-                4. Поручения ({bounties.filter((b) => !b.completed).length})
+                5. Поручения ({bounties.filter((b) => !b.completed).length})
               </span>
             </button>
           </div>
@@ -1796,7 +1821,31 @@ export function App() {
           )}
 
           {/* ===================================================== */}
-          {/* SCREEN 2: BESTIARY & FAST HARVEST (БЕСТИАРИЙ)         */}
+          {/* SCREEN 2: CODEX FOLIO (КАТАЛОГ-ГРИМУАР ДАЛЬНЕГО КАМНЯ) */}
+          {/* ===================================================== */}
+          {activeMainTab === 'codex' && (
+            <CodexFolioPanel
+              itemsMap={itemsMap}
+              discoveredItemIds={discoveredItemIds}
+              inventory={inventory}
+              recipes={recipes}
+              monsters={allMonsters}
+              selectedItemId={selectedJeiItemId}
+              onSelectItemId={(id) => setSelectedJeiItemId(id)}
+              onLoadRecipeToCrucible={handleLoadFullRecipeToCrucible}
+              onAddReagentToCrucible={handleAddReagentToCrucible}
+              onInspectItem={(it) => setInspectedItem(it)}
+              onApplyBuffToHero={handleApplyBuffToHero}
+              onJumpToMonster={(monsterId) => {
+                sfx.playClick();
+                setHighlightedMonsterId(monsterId);
+                setActiveMainTab('bestiary');
+              }}
+            />
+          )}
+
+          {/* ===================================================== */}
+          {/* SCREEN 3: BESTIARY & FAST HARVEST (БЕСТИАРИЙ)         */}
           {/* ===================================================== */}
           {activeMainTab === 'bestiary' && (
             <div className="space-y-4">
@@ -2193,6 +2242,7 @@ export function App() {
             }}
             onBuyCatalyst={handleBuyCatalyst}
             onInspectStatblock={(item) => setInspectedItem(item)}
+            onOpenFullCodex={() => setActiveMainTab('codex')}
           />
         </div>
       </main>

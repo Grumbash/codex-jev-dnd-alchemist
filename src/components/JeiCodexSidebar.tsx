@@ -35,6 +35,7 @@ interface JeiCodexSidebarProps {
   onJumpToMonster: (monsterId: string) => void;
   onBuyCatalyst: (itemId: string) => void;
   onInspectStatblock: (item: GameItem) => void;
+  onOpenFullCodex?: () => void;
 }
 
 const STATION_LABELS: Record<CraftingStation, { name: string; icon: string }> = {
@@ -57,6 +58,7 @@ export const JeiCodexSidebar: React.FC<JeiCodexSidebarProps> = ({
   onJumpToMonster,
   onBuyCatalyst,
   onInspectStatblock,
+  onOpenFullCodex,
 }) => {
   const [search, setSearch] = useState('');
   const [kindFilter, setKindFilter] = useState<'all' | 'reagent' | 'crafted' | 'catalyst'>('all');
@@ -122,6 +124,15 @@ export const JeiCodexSidebar: React.FC<JeiCodexSidebarProps> = ({
             <h2 className="font-display font-bold text-sm tracking-wide text-[#f0ece3]">
               Гримуар Знаний
             </h2>
+            {onOpenFullCodex && (
+              <button
+                onClick={onOpenFullCodex}
+                className="px-2 py-0.5 rounded bg-[#182a35] hover:bg-[#223947] border border-[#c9aa72]/40 text-[#e5cb94] text-[10px] font-mono flex items-center gap-1 cursor-pointer transition-colors"
+                title="Развернуть полный Каталог-Гримуар на весь экран"
+              >
+                <span>⛶ Каталог</span>
+              </button>
+            )}
           </div>
           <span className="text-[11px] font-mono text-[#8ca0ab]">
             Открыто:{' '}
