@@ -69,6 +69,8 @@ import { HeroRaidPanel, getHeroSlotForItem } from './components/HeroRaidPanel';
 import { MerchantHaggleModal } from './components/MerchantHaggleModal';
 import { DmMasterModal } from './components/DmMasterModal';
 import { CodexFolioPanel } from './components/CodexFolioPanel';
+import { D20DiceModal } from './components/D20DiceModal';
+import { SlagAlembicModal } from './components/SlagAlembicModal';
 import { sfx } from './utils/sound';
 
 const STORAGE_KEY = 'dnd_jev_alchemist_guild_world_v2';
@@ -181,6 +183,16 @@ export function App() {
   const [inventoryFilter, setInventoryFilter] = useState<'all' | 'reagent' | 'catalyst' | 'crafted'>('all');
   const [inventorySearch, setInventorySearch] = useState<string>('');
   const [showSettingsMenu, setShowSettingsMenu] = useState<boolean>(false);
+
+  // === FEATURES 5 & 3: AMBIENT SOUNDSCAPE, 3D D20 & SLAG ALEMBIC ===
+  const [isAmbientPlaying, setIsAmbientPlaying] = useState<boolean>(false);
+  const [showD20Modal, setShowD20Modal] = useState<boolean>(false);
+  const [d20ModalTargetResult, setD20ModalTargetResult] = useState<number | undefined>(undefined);
+  const [d20ModalDc, setD20ModalDc] = useState<number | undefined>(undefined);
+  const [d20ModalModifier, setD20ModalModifier] = useState<number>(0);
+  const [d20ModalTitle, setD20ModalTitle] = useState<string>('Бросок d20 Судьбы');
+  const [d20ModalSubtitle, setD20ModalSubtitle] = useState<string>('Мыс Дальний Камень');
+  const [showAlembicModal, setShowAlembicModal] = useState<boolean>(false);
 
   const allMonsters = useMemo(
     () => [...customMonsters, ...MONSTERS],
@@ -830,6 +842,49 @@ export function App() {
     );
   };
 
+  const handleDistillSlag = (
+    recipeId: string,
+    costSlag: number,
+    costGold: number,
+    resultItem: GameItem
+  ) => {
+    setInventory((prev) => ({
+      ...prev,
+      alchemical_slag: Math.max(0, (prev.alchemical_slag || 0) - costSlag),
+      [resultItem.id]: (prev[resultItem.id] || 0) + 1,
+    }));
+    if (costGold > 0) {
+      setGold((prev) => Math.max(0, prev - costGold));
+    }
+    setItemsMap((prev) => ({ ...prev, [resultItem.id]: resultItem }));
+    markDiscovered([resultItem.id]);
+    setXp((prev) => prev + 45);
+    setSelectedJeiItemId(resultItem.id);
+    showToast(`⚗️ Скреп завершил перегонку: получено «${resultItem.name}»! (+45 XP)`);
+  };
+
+  const handleFuseRelics = (
+    itemA: GameItem,
+    itemB: GameItem,
+    costGold: number,
+    resultItem: GameItem
+  ) => {
+    setInventory((prev) => {
+      const next = { ...prev };
+      next[itemA.id] = Math.max(0, (next[itemA.id] || 0) - 1);
+      next[itemB.id] = Math.max(0, (next[itemB.id] || 0) - 1);
+      next[resultItem.id] = (next[resultItem.id] || 0) + 1;
+      return next;
+    });
+    setGold((prev) => Math.max(0, prev - costGold));
+    setItemsMap((prev) => ({ ...prev, [resultItem.id]: resultItem }));
+    markDiscovered([resultItem.id]);
+    setXp((prev) => prev + 350);
+    setInspectedItem(resultItem);
+    setSelectedJeiItemId(resultItem.id);
+    showToast(`👑 ВЕЛИКАЯ ТРАНСМУТАЦИЯ СОВЕРШЕНА! Создан артефакт «${resultItem.name}»! (+350 XP)`);
+  };
+
   const handleResetSave = () => {
     if (!window.confirm('Сбросить весь прогресс Гримуара и начать заново?')) return;
     localStorage.removeItem(STORAGE_KEY);
@@ -928,6 +983,32 @@ export function App() {
 
           {/* Progression Pillars: Tabletop Roll Mode, Mastery, Stamina, Gold, GM Mode, Settings */}
           <div className="flex flex-wrap items-center gap-2">
+            {/* Cape Farstone Ambient Soundscape Toggle */}
+            <button
+              onClick={() => {
+                const isPlaying = sfx.toggleAmbientSoundscape();
+                setIsAmbientPlaying(isPlaying);
+                showToast(
+                  isPlaying
+                    ? '🌊 Атмосферный эмбиент Мыса Дальний Камень включен (прибой океана и угли логова).'
+                    : '🔇 Эмбиент мыса выключен.'
+                );
+              }}
+              title="Переключить атмосферный эмбиент Мыса Дальний Камень (шум прибоя, потрескивание углей очага, Черный Колокол)"
+              className={`px-3 py-1.5 rounded-xl border text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                isAmbientPlaying
+                  ? 'bg-cyan-950/70 border-cyan-400 text-cyan-200 shadow-[0_0_14px_rgba(6,182,212,0.3)]'
+                  : 'bg-[#101b22] border-[#293d48] text-[#9cb0b9] hover:border-cyan-500/40 hover:text-[#f0ece3]'
+              }`}
+            >
+              <span className={isAmbientPlaying ? 'animate-bounce' : ''}>
+                {isAmbientPlaying ? '🌊' : '🔇'}
+              </span>
+              <span className="hidden sm:inline">
+                {isAmbientPlaying ? 'Эмбиент: ВКЛ' : 'Эмбиент Мыса'}
+              </span>
+            </button>
+
             {/* Tabletop d20 Roll Mode Toggle */}
             <button
               onClick={() => {
@@ -1064,6 +1145,27 @@ export function App() {
                     </span>
                     <span className="text-[10px] font-mono text-[#94a7b0]">
                       {soundEnabled ? 'ВКЛ' : 'ВЫКЛ'}
+                    </span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      const isPlaying = sfx.toggleAmbientSoundscape();
+                      setIsAmbientPlaying(isPlaying);
+                      showToast(
+                        isPlaying
+                          ? '🌊 Атмосферный эмбиент включен (прибой мыса).'
+                          : '🔇 Атмосферный эмбиент выключен.'
+                      );
+                    }}
+                    className="w-full px-3 py-2 rounded-lg text-left text-xs text-[#f0ece3] hover:bg-[#182832] flex items-center justify-between"
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="text-sm">🌊</span>
+                      <span>Эмбиент мыса</span>
+                    </span>
+                    <span className="text-[10px] font-mono text-[#94a7b0]">
+                      {isAmbientPlaying ? 'ВКЛ' : 'ВЫКЛ'}
                     </span>
                   </button>
 
@@ -1313,6 +1415,22 @@ export function App() {
                     {val}
                   </button>
                 ))}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setD20ModalTargetResult(manualD20Roll);
+                    setD20ModalModifier(proficiencyBonus);
+                    setD20ModalTitle(`3D d20: ${activeHero.name}`);
+                    setD20ModalSubtitle(`Бонус персонажа: +${proficiencyBonus}`);
+                    setShowD20Modal(true);
+                  }}
+                  className="px-3 py-1 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-stone-950 font-display font-bold text-xs flex items-center gap-1.5 shadow-md cursor-pointer transition-all ml-1"
+                  title="Запустить интерактивную 3D-анимацию кубика d20 Three.js"
+                >
+                  <span>🎲</span>
+                  <span>3D d20</span>
+                </button>
               </div>
             </div>
           )}
@@ -1428,6 +1546,31 @@ export function App() {
                         </div>
                       </button>
                     ))}
+
+                    {/* Skrep's Slag Alembic & Relic Fusion Button */}
+                    <button
+                      onClick={() => {
+                        sfx.playClick();
+                        setShowAlembicModal(true);
+                      }}
+                      className="px-3.5 py-2 rounded-xl border border-amber-500/50 bg-[#1e1710] hover:bg-[#2b1f14] text-amber-200 text-left transition-all flex items-center gap-2.5 cursor-pointer shadow-md"
+                      title="Открыть Перегонный куб Скрепа (Очиститель шлака и Великая Трансмутация)"
+                    >
+                      <span className="text-xl">⚗️</span>
+                      <div>
+                        <div className="text-xs font-bold leading-none flex items-center gap-1.5">
+                          <span>Куб Скрепа</span>
+                          {(inventory.alchemical_slag || 0) > 0 && (
+                            <span className="px-1.5 py-0.2 rounded-full bg-amber-500/30 text-amber-300 text-[10px] font-mono">
+                              {inventory.alchemical_slag}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[10px] text-amber-400/80 mt-0.5 hidden sm:block">
+                          Шлак & Реликвии
+                        </div>
+                      </div>
+                    </button>
                   </div>
                 </div>
 
@@ -1625,24 +1768,47 @@ export function App() {
                       </div>
                     )}
 
-                    <button
-                      onClick={handleSynthesize}
-                      disabled={crucibleItems.length < 2 || isEvaluating || isRolling}
-                      className={`w-full py-3.5 px-4 rounded-xl font-display font-bold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                        crucibleItems.length >= 2 && !isEvaluating
-                          ? 'bg-gradient-to-r from-[#d0ad77] via-[#c9aa72] to-[#b89154] hover:from-[#e0bd86] hover:to-[#cbb075] text-[#121e27] shadow-[0_4px_20px_rgba(208,173,119,0.35)]'
-                          : 'bg-[#182630] text-[#5e727e] border border-[#243745] cursor-not-allowed'
-                      }`}
-                    >
-                      <Dices className="w-5 h-5" />
-                      <span>
-                        {isRolling
-                          ? 'Трансмутация...'
-                          : tabletopRollMode
-                          ? `Синтезировать (${manualD20Roll} + ${proficiencyBonus} = ${manualD20Roll + proficiencyBonus})`
-                          : `Синтезировать (Бросок d20 • 1⚡)`}
-                      </span>
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleSynthesize}
+                        disabled={crucibleItems.length < 2 || isEvaluating || isRolling}
+                        className={`flex-1 py-3.5 px-4 rounded-xl font-display font-bold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                          crucibleItems.length >= 2 && !isEvaluating
+                            ? 'bg-gradient-to-r from-[#d0ad77] via-[#c9aa72] to-[#b89154] hover:from-[#e0bd86] hover:to-[#cbb075] text-[#121e27] shadow-[0_4px_20px_rgba(208,173,119,0.35)]'
+                            : 'bg-[#182630] text-[#5e727e] border border-[#243745] cursor-not-allowed'
+                        }`}
+                      >
+                        <Dices className="w-5 h-5" />
+                        <span>
+                          {isRolling
+                            ? 'Трансмутация...'
+                            : tabletopRollMode
+                            ? `Синтезировать (${manualD20Roll} + ${proficiencyBonus} = ${manualD20Roll + proficiencyBonus})`
+                            : `Синтезировать (d20 • 1⚡)`}
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setD20ModalDc(crucibleItems.length >= 2 ? effectiveDc : undefined);
+                          setD20ModalModifier(proficiencyBonus);
+                          setD20ModalTitle(`Синтез: ${activeHero.name}`);
+                          setD20ModalSubtitle(
+                            crucibleItems.length >= 2
+                              ? `Сложность синтеза СЛ: ${effectiveDc}`
+                              : 'Проверка ремесла d20'
+                          );
+                          setD20ModalTargetResult(tabletopRollMode ? manualD20Roll : undefined);
+                          setShowD20Modal(true);
+                        }}
+                        className="px-3.5 py-3.5 rounded-xl border border-amber-500/50 bg-[#162732] hover:bg-[#203644] text-amber-300 font-display font-bold text-xs flex items-center gap-1.5 shadow-md cursor-pointer transition-all"
+                        title="Открыть 3D-кубик судьбы Three.js"
+                      >
+                        <span>🎲</span>
+                        <span className="hidden sm:inline">3D d20</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -2461,6 +2627,31 @@ export function App() {
           </div>
         </div>
       )}
+
+      {/* 3D THREE.JS D20 DICE ROLL MODAL */}
+      <D20DiceModal
+        isOpen={showD20Modal}
+        onClose={() => setShowD20Modal(false)}
+        targetResult={d20ModalTargetResult}
+        modifier={d20ModalModifier}
+        dc={d20ModalDc}
+        title={d20ModalTitle}
+        subtitle={d20ModalSubtitle}
+        onRollComplete={(rolledVal) => {
+          setManualD20Roll(rolledVal);
+        }}
+      />
+
+      {/* SKREP'S SLAG ALEMBIC & HERITAGE RELIC FUSION MODAL */}
+      <SlagAlembicModal
+        isOpen={showAlembicModal}
+        onClose={() => setShowAlembicModal(false)}
+        inventory={inventory}
+        itemsMap={itemsMap}
+        gold={gold}
+        onDistillSlag={handleDistillSlag}
+        onFuseRelics={handleFuseRelics}
+      />
     </div>
   );
 }
