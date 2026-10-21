@@ -71,6 +71,14 @@ import { DmMasterModal } from './components/DmMasterModal';
 import { CodexFolioPanel } from './components/CodexFolioPanel';
 import { D20DiceModal } from './components/D20DiceModal';
 import { SlagAlembicModal } from './components/SlagAlembicModal';
+import { AccessGateModal } from './components/AccessGateModal';
+import {
+  AuthConfig,
+  AuthSession,
+  getAuthConfig,
+  getSavedAuthSession,
+  checkUrlAuthParams,
+} from './utils/auth';
 import { sfx } from './utils/sound';
 
 const STORAGE_KEY = 'dnd_jev_alchemist_guild_world_v2';
@@ -194,6 +202,11 @@ export function App() {
   const [d20ModalSubtitle, setD20ModalSubtitle] = useState<string>('Мыс Дальний Камень');
   const [showAlembicModal, setShowAlembicModal] = useState<boolean>(false);
 
+  // === ACCESS CONTROL & FOUNDRY VTT GATE ===
+  const [authConfig, setAuthConfig] = useState<AuthConfig>(() => getAuthConfig());
+  const [authSession, setAuthSession] = useState<AuthSession | null>(() => getSavedAuthSession());
+  const [showAccessGateModal, setShowAccessGateModal] = useState<boolean>(false);
+
   const allMonsters = useMemo(
     () => [...customMonsters, ...MONSTERS],
     [customMonsters]
@@ -204,8 +217,19 @@ export function App() {
     [activeHeroId]
   );
 
-  // Load saved state on mount
+  // Load saved state and verify URL auth parameters on mount
   useEffect(() => {
+    // Check URL parameters for instant Foundry login
+    const urlAuth = checkUrlAuthParams(authConfig);
+    if (urlAuth.session) {
+      setAuthSession(urlAuth.session);
+      if (urlAuth.heroParam) {
+        setActiveHeroId(urlAuth.heroParam);
+      }
+    } else if (!authSession) {
+      // If not authenticated and no token in URL, lock screen behind Far Stone Ward
+      setShowAccessGateModal(true);
+    }
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
@@ -1091,14 +1115,40 @@ export function App() {
               </div>
             </div>
 
-            {/* DM Mode Button */}
+            {/* Access & Foundry VTT Links Button */}
             <button
               onClick={() => {
                 sfx.playClick();
-                setShowDmModal(true);
+                setShowAccessGateModal(true);
+              }}
+              className={`px-3 py-1.5 rounded-xl border text-xs font-display font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                authSession?.role === 'gm'
+                  ? 'bg-amber-950/60 border-amber-500/60 text-amber-300 shadow-md'
+                  : 'bg-[#101b22] border-[#293d48] text-[#9cb0b9] hover:text-[#f0ece3]'
+              }`}
+              title="Управление доступом и ссылками для Foundry VTT"
+            >
+              <Shield className="w-3.5 h-3.5 text-amber-400" />
+              <span>{authSession?.role === 'gm' ? 'Доступ: GM' : 'Foundry'}</span>
+            </button>
+
+            {/* DM Mode Button (GM Only) */}
+            <button
+              onClick={() => {
+                sfx.playClick();
+                if (authSession?.role === 'gm') {
+                  setShowDmModal(true);
+                } else {
+                  showToast('Для входа в Режим Ведущего требуется ввести GM-ключ.');
+                  setShowAccessGateModal(true);
+                }
               }}
               className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#2a2215] to-[#1d1b2a] hover:from-[#3a2f1c] hover:to-[#28253b] border border-[#c9aa72]/60 text-xs font-display font-bold text-[#e5cb94] flex items-center gap-1.5 shadow-md cursor-pointer"
-              title="Открыть Панель Ведущего (выдача трофеев и создание монстров со стола)"
+              title={
+                authSession?.role === 'gm'
+                  ? 'Открыть Панель Ведущего (выдача трофеев и создание монстров)'
+                  : 'Требуется авторизация Ведущего (GM Key)'
+              }
             >
               <Crown className="w-3.5 h-3.5 text-[#d0ad77]" />
               <span className="hidden sm:inline">Режим ГМ</span>
@@ -2651,6 +2701,22 @@ export function App() {
         gold={gold}
         onDistillSlag={handleDistillSlag}
         onFuseRelics={handleFuseRelics}
+      />
+
+      {/* ACCESS CONTROL & FOUNDRY GATEKEEPER MODAL */}
+      <AccessGateModal
+        isOpen={showAccessGateModal}
+        onClose={() => setShowAccessGateModal(false)}
+        session={authSession}
+        authConfig={authConfig}
+        onUpdateSession={(sess) => {
+          setAuthSession(sess);
+          if (sess?.authenticatedHeroId) {
+            setActiveHeroId(sess.authenticatedHeroId);
+          }
+        }}
+        onUpdateConfig={(cfg) => setAuthConfig(cfg)}
+        onSelectHero={(heroId) => setActiveHeroId(heroId)}
       />
     </div>
   );
